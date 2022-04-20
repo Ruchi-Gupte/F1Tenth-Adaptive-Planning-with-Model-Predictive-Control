@@ -32,6 +32,7 @@ from scipy import interpolate
 from scipy.interpolate import splprep, splev
 
 import pdb
+import copy
 
 NX = 4  # x = x, y, v, yaw
 NU = 2  # a = [accel, steer]
@@ -64,7 +65,7 @@ WHEEL_WIDTH = 0.05  # [m]
 TREAD = 0.5  # [m]
 WB =0.32  # [m]
 
-MAX_STEER = np.deg2rad(20.0)  # maximum steering angle [rad]
+MAX_STEER = np.deg2rad(40.0)  # maximum steering angle [rad]
 MAX_DSTEER = np.deg2rad(10.0)  # maximum steering speed [rad/s]
 MAX_SPEED = 10.0  # maximum speed [m/s]
 MIN_SPEED = 0  # minimum speed [m/s]
@@ -96,7 +97,7 @@ class MPC(Node):
             Type: numpy array -> Shape : [2,1000] where 2 corresponds to x and y and 1000 are the number of points
         """
 
-        traj = np.load("/sim_ws/src/safety_node/scripts/trajectory.npy")
+        traj = np.load("/sim_ws/src/generate_waypoints/scripts/trajectory.npy")
         self.waypoints = traj
         # pdb.set_trace()
         # self.waypoints      =       self.waypoints[:, 0:1000:20]
@@ -108,7 +109,11 @@ class MPC(Node):
         # TODO: create ROS subscribers and publishers
 
         vis_topic = "visualization_marker"
+        vis_topic2 = "visualization_marker2"
+
         self.visualize_pub              =       self.create_publisher(Marker, vis_topic, 10)
+        self.visualize_pub2              =       self.create_publisher(Marker, vis_topic2, 10)
+        
 
         self.vis_msg                         =       Marker()
         self.vis_msg.header.frame_id         =       "/map"
@@ -127,11 +132,12 @@ class MPC(Node):
         # self.vis_msg.pose.position.z         =       1.0
         self.vis_msg.pose.orientation.w      =       1.0
         self.vis_msg.lifetime                =       Duration()
-        # self.vis_msg.lifetime.sec            =       0        
+        # self.vis_msg.lifetime.sec            =       10        
         self.cx          =       traj[:,0].tolist()
         self.cy          =       traj[:,1].tolist()
         self.sp          =       traj[:,2].tolist()
         self.cyaw        =       (np.deg2rad(90) + traj[:,3]).tolist()
+        # self.cyaw        =       traj[:,3].tolist()
         self.ck          =       traj[:,4].tolist()       
 
         for i in range(self.waypoints.shape[0]):
@@ -144,11 +150,16 @@ class MPC(Node):
             # pdb.set_trace()
 
             self.vis_msg.points.append(p)
-        # pdb.set_trace()
+        
+        self.vis_msg2 = Marker()
+        self.vis_msg2 = copy.deepcopy(self.vis_msg)
+        self.vis_msg2.points = []
+        self.vis_msg2.color.g = 0.0
+        self.vis_msg2.color.r = 1.0
 
         self.data= []
-        timer_period = 0.5
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        timer_period = 0.001
+        # self.timer = self.create_timer(timer_period, self.timer_callback)
         self.visualize_pub.publish(self.vis_msg)
 
         odomTopic = "/ego_racecar/odom"
@@ -160,8 +171,11 @@ class MPC(Node):
         self.yaw = 0
         self.v = 0
 
-    def timer_callback(self):
-        self.visualize_pub.publish(self.vis_msg)
+        self.initialize = True
+
+    # def timer_callback(self):
+    #     self.visualize_pub.publish(self.vis_msg)
+    #     print(self.waypoints.shape)
 
     def get_linear_model_matrix(self,v, phi, delta):
 
@@ -331,7 +345,7 @@ class MPC(Node):
         else:
             print("Error: Cannot solve mpc..")
             oa, odelta, ox, oy, oyaw, ov = None, None, None, None, None, None
-
+        
         return oa, odelta, ox, oy, oyaw, ov
 
     def calc_ref_trajectory(self,state, cx, cy, cyaw, ck, sp, dl, pind):
@@ -340,7 +354,7 @@ class MPC(Node):
         ncourse = len(cx)
 
         ind, _ = self.calc_nearest_index(state, cx, cy, cyaw, pind)
-        print(ind)
+        # print(ind)
         if pind >= ind:
             ind = pind
 
@@ -349,6 +363,7 @@ class MPC(Node):
         xref[2, 0] = sp[ind]
         xref[3, 0] = cyaw[ind]
         dref[0, 0] = 0.0  # steer operational point should be 0
+        
 
         travel = 0.0
 
@@ -410,76 +425,82 @@ class MPC(Node):
         # TODO: find the current waypoint to track using methods mentioned in lecture
         # currPosex = pose_msg.twist.linear.x
         # currPosey = pose_msg.twist.linear.y #Gets the x and y values of my current pose
+        
+        if(self.initialize):
+            self.initialize = False
+            self.target_ind = 0 #update it later to initial state
+            # self.cyaw = self.smooth_yaw(self.cyaw)
+
+            self.odelta, self.oa = None, None
+            
+        
         dl = 0.1
-        self.x = pose_msg.pose.pose.position.x
-        self.y = pose_msg.pose.pose.position.y
-        # self.position= [currPosex, currPosey]
-        # currPose = np.array([currPosex,currPosey,0]).reshape((3,-1))
+        x = pose_msg.pose.pose.position.x
+        y = pose_msg.pose.pose.position.y
+        
         qx = pose_msg.pose.pose.orientation.x
         qy = pose_msg.pose.pose.orientation.y
         qz = pose_msg.pose.pose.orientation.z
         qw = pose_msg.pose.pose.orientation.w
-        
-        # pdb.set_trace()
+
         rot_car_world = Rot.from_quat([qx,qy,qz,qw])
-        
+
         roll,pitch,yaw = rot_car_world.as_euler('xyz',degrees=False)
-        self.yaw = yaw
-        # print("Roll = :", roll)
-        # print("pitch = :", pitch)
-        # print("yaw = :", yaw)
-        # self.v = np.sqrt(pose_msg.twist.twist.linear.x**2 +pose_msg.twist.twist.linear.y**2+pose_msg.twist.twist.linear.z**2)
-        self.v = pose_msg.twist.twist.linear.x
-        goal = [self.cx[-1], self.cy[-1]]
+        yaw = yaw
+        
+        v = pose_msg.twist.twist.linear.x
 
-        state = State(self.x,self.y,self.yaw,self.v)
+        state = State(x,y,yaw,v)
 
-        p_ind = 0 #update it later to initial state
+        self.target_ind, _ = self.calc_nearest_index(state, self.cx, self.cy, self.cyaw, self.target_ind)
 
+        # print(self.target_ind)
 
-        time = 0.0
-        x = [state.x]
-        y = [state.y]
-        yaw = [state.yaw]
-        v = [state.v]
-        t = [0.0]
-        d = [0.0]
-        a = [0.0]
-        target_ind, _ = self.calc_nearest_index(state, self.cx, self.cy, self.cyaw, p_ind)
+        if(self.target_ind > 155):
+            self.target_ind = 0
 
-        odelta, oa = None, None
+        if state.yaw - self.cyaw[self.target_ind] >= math.pi:
+            state.yaw -= math.pi * 2.0
+        elif state.yaw - self.cyaw[self.target_ind] <= -math.pi:
+            state.yaw += math.pi * 2.0
 
-        self.cyaw = self.smooth_yaw(self.cyaw)
+        # self.visualize_pub.publish(self.vis_msg)
+        xref, self.target_ind, dref = self.calc_ref_trajectory(
+                state, self.cx, self.cy, self.cyaw, self.ck, self.sp, dl, self.target_ind)
+        
+        # self.vis_msg2.points = []
+        for i in range(xref.shape[1]):
+        # for i in range(1):
+            p       =       Point()
+            
+            p.x     =       xref[0,i]
+            p.y     =       xref[1,i]
+            p.z     =       0.0
 
-        while MAX_TIME >= time:
-            if(target_ind > 155):
-                target_ind = 0
+            # pdb.set_trace()
 
-                if state.yaw - self.cyaw[0] >= math.pi:
-                    state.yaw -= math.pi * 2.0
-                elif state.yaw - self.cyaw[0] <= -math.pi:
-                    state.yaw += math.pi * 2.0
+            self.vis_msg2.points.append(p)
+        self.visualize_pub2.publish(self.vis_msg2)
+        x0 = [state.x, state.y, state.v, state.yaw]  # current state
 
-            xref, target_ind, dref = self.calc_ref_trajectory(
-                state, self.cx, self.cy, self.cyaw, self.ck, self.sp, dl, target_ind)
-
-            x0 = [state.x, state.y, state.v, state.yaw]  # current state
-
-            oa, odelta, ox, oy, oyaw, ov = self.iterative_linear_mpc_control(
-                xref, x0, dref, oa, odelta)
-
-            if odelta is not None:
-                print("Publishing")
-                di, ai = odelta[0], oa[0]
-                # TODO: publish drive message, don't forget to limit the steering angle.
-                msg = AckermannDriveStamped()
-                msg.drive.acceleration = float(ai)
-                msg.drive.steering_angle = di
-                msg.drive.speed          =  float(ov[0])
-                self.drivePub.publish(msg)
+        self.oa, self.odelta, ox, oy, oyaw, ov = self.iterative_linear_mpc_control(
+                xref, x0, dref, self.oa, self.odelta)
+        # print("state yaw: ", yaw, "  slef.cyaw: ", self.cyaw[self.target_ind], "input_angle: ", self.odelta[0])
+        if self.odelta is not None:
+            # print("Publishing")
+            di, ai = self.odelta[0], self.oa[0]
+            # print("di: ", di)
+            # print("ai: ", ai)
+            # print("ov: ", ov[0])
+            # TODO: publish drive message, don't forget to limit the steering angle.
+            msg = AckermannDriveStamped()
+            msg.drive.acceleration = float(ai)
+            msg.drive.steering_angle = di
+            # msg.drive.speed          =  float(ov[0])
+            msg.drive.speed          =  float(self.sp[self.target_ind])
+            self.drivePub.publish(msg)
                 
-            state = self.update_state(state, ai, di)
-            time = time + DT
+            # state = self.update_state(state, ai, di)
 
             
 def main(args=None):
