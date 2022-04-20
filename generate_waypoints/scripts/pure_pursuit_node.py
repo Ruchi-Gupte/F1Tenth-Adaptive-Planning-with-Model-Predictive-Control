@@ -36,7 +36,7 @@ import copy
 
 NX = 4  # x = x, y, v, yaw
 NU = 2  # a = [accel, steer]
-T = 5  # horizon length
+T = 3  # horizon length
 
 # mpc parameters
 R = np.diag([0.01, 0.01])  # input cost matrix
@@ -107,7 +107,7 @@ class MPC(Node):
         # print("Length of self.waypoints[0]: ", len(self.waypoints[0]))
 
         # TODO: create ROS subscribers and publishers
-
+        self.old_input      =       0
         vis_topic = "visualization_marker"
         vis_topic2 = "visualization_marker2"
 
@@ -131,12 +131,15 @@ class MPC(Node):
         # self.vis_msg.pose.position.y         =       0.0448
         # self.vis_msg.pose.position.z         =       1.0
         self.vis_msg.pose.orientation.w      =       1.0
-        self.vis_msg.lifetime                =       Duration()
-        # self.vis_msg.lifetime.sec            =       10        
+        # self.vis_msg.lifetime                =       Duration()
+        self.vis_msg.lifetime.nanosec            =       30        
         self.cx          =       traj[:,0].tolist()
         self.cy          =       traj[:,1].tolist()
         self.sp          =       traj[:,2].tolist()
-        self.cyaw        =       (np.deg2rad(90) + traj[:,3]).tolist()
+        self.cyaw        =       (np.deg2rad(90) + traj[:,3])
+        self.cyaw       =       self.cyaw%(2*math.pi)
+        # self.cyaw[self.cyaw>math.pi] = self.cyaw[self.cyaw>math.pi] - 2*math.pi 
+        self.cyaw       =       self.cyaw.tolist()
         # self.cyaw        =       traj[:,3].tolist()
         self.ck          =       traj[:,4].tolist()       
 
@@ -446,8 +449,8 @@ class MPC(Node):
         rot_car_world = Rot.from_quat([qx,qy,qz,qw])
 
         roll,pitch,yaw = rot_car_world.as_euler('xyz',degrees=False)
-        yaw = yaw
-        
+        if(yaw < 0):
+            yaw = yaw + 2*math.pi
         v = pose_msg.twist.twist.linear.x
 
         state = State(x,y,yaw,v)
@@ -460,15 +463,18 @@ class MPC(Node):
             self.target_ind = 0
 
         if state.yaw - self.cyaw[self.target_ind] >= math.pi:
+            # print("I am here")
             state.yaw -= math.pi * 2.0
         elif state.yaw - self.cyaw[self.target_ind] <= -math.pi:
+            # print("I am here2")
             state.yaw += math.pi * 2.0
 
-        # self.visualize_pub.publish(self.vis_msg)
+        self.visualize_pub.publish(self.vis_msg)
         xref, self.target_ind, dref = self.calc_ref_trajectory(
                 state, self.cx, self.cy, self.cyaw, self.ck, self.sp, dl, self.target_ind)
         
-        # self.vis_msg2.points = []
+        self.vis_msg2.points = []
+        # self.visualize_pub2.publish(self.vis_msg2)
         for i in range(xref.shape[1]):
         # for i in range(1):
             p       =       Point()
@@ -485,7 +491,7 @@ class MPC(Node):
 
         self.oa, self.odelta, ox, oy, oyaw, ov = self.iterative_linear_mpc_control(
                 xref, x0, dref, self.oa, self.odelta)
-        # print("state yaw: ", yaw, "  slef.cyaw: ", self.cyaw[self.target_ind], "input_angle: ", self.odelta[0])
+        print("state yaw: ", yaw, "  slef.cyaw: ", self.cyaw[self.target_ind], "input_angle: ", self.odelta[0])
         if self.odelta is not None:
             # print("Publishing")
             di, ai = self.odelta[0], self.oa[0]
@@ -495,9 +501,13 @@ class MPC(Node):
             # TODO: publish drive message, don't forget to limit the steering angle.
             msg = AckermannDriveStamped()
             msg.drive.acceleration = float(ai)
+            if(abs(self.old_input - di) > 0.3):
+                di = self.old_input
             msg.drive.steering_angle = di
+            self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
             msg.drive.speed          =  float(self.sp[self.target_ind])
+            # msg.drive.speed          =  1.0
             self.drivePub.publish(msg)
                 
             # state = self.update_state(state, ai, di)
