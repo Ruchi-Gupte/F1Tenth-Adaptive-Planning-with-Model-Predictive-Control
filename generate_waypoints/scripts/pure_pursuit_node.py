@@ -459,7 +459,7 @@ class MPC(Node):
 
         # print(self.target_ind)
 
-        if(self.target_ind > 155):
+        if(self.target_ind > len(self.cx) - T):
             self.target_ind = 0
 
         if state.yaw - self.cyaw[self.target_ind] >= math.pi:
@@ -491,7 +491,7 @@ class MPC(Node):
 
         self.oa, self.odelta, ox, oy, oyaw, ov = self.iterative_linear_mpc_control(
                 xref, x0, dref, self.oa, self.odelta)
-        print("state yaw: ", yaw, "  slef.cyaw: ", self.cyaw[self.target_ind], "input_angle: ", self.odelta[0])
+        print("s_yaw:", yaw, "|t_yaw:", self.cyaw[self.target_ind], "|steer:", self.odelta[0], "|s_x:",state.x,"|s_y:",state.y,"|t_x:",self.cx[self.target_ind],"|t_y:",self.cy[self.target_ind])
         if self.odelta is not None:
             # print("Publishing")
             di, ai = self.odelta[0], self.oa[0]
@@ -507,6 +507,7 @@ class MPC(Node):
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
             msg.drive.speed          =  float(self.sp[self.target_ind])
+            # msg.drive.speed          =  5.0
             # msg.drive.speed          =  1.0
             self.drivePub.publish(msg)
                 
