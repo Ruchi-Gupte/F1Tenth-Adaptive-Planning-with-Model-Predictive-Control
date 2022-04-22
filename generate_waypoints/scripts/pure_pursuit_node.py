@@ -365,6 +365,8 @@ class MPC(Node):
         dref = np.zeros((1, T + 1))
         ncourse = len(cx)
 
+        tref = cyaw[pind]
+        
         ind, _ = self.calc_nearest_index(state, cx, cy, cyaw, pind)
         # print(ind)
         if pind >= ind:
@@ -379,7 +381,14 @@ class MPC(Node):
 
         travel = 0.0
 
-        for i in range(T + 1):
+        if(abs(state.yaw - xref[3,0]) > 3.14):
+            if(state.yaw < xref[3,0]):
+                state.yaw += 2*math.pi
+            else:
+                print("hey you out there in the cold, ")
+                xref[3,0] += 2*math.pi
+
+        for i in range(1,T + 1):
             travel += abs(state.v) * DT
             dind = int(round(travel / dl))
 
@@ -395,6 +404,9 @@ class MPC(Node):
                 xref[2, i] = sp[ncourse - 1]
                 xref[3, i] = cyaw[ncourse - 1]
                 dref[0, i] = 0.0
+            if(i>0):
+                if xref[3,i] < 1.0 and xref[3,i-1] > 6.0:
+                    xref[3,i] += 2*math.pi
 
         return xref, ind, dref
 
@@ -500,8 +512,10 @@ class MPC(Node):
 
         self.oa, self.odelta, ox, oy, oyaw, ov = self.iterative_linear_mpc_control(
                 xref, x0, dref, self.oa, self.odelta)
+        
         print("s_yaw:", yaw, "|t_yaw:", self.cyaw[self.target_ind], "|steer:", self.odelta[0], "|s_x:",state.x,"|s_y:",state.y,"|t_x:",self.cx[self.target_ind],"|t_y:",self.cy[self.target_ind])
         print("xref: ", xref[3,:])
+
         if self.odelta is not None:
             # print("Publishing")
             di, ai = self.odelta[0], self.oa[0]
@@ -516,10 +530,10 @@ class MPC(Node):
             msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
-            msg.drive.speed          =  float(self.sp[self.target_ind])
-            print(msg.drive.speed)
+            msg.drive.speed          =  float(self.sp[self.target_ind])*0.8
+            # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
-            msg.drive.speed          =  1.0
+            # msg.drive.speed          =  3.0
             self.drivePub.publish(msg)
                 
             # state = self.update_state(state, ai, di)
