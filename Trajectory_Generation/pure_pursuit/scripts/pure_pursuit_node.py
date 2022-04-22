@@ -18,23 +18,20 @@ from scipy import interpolate
 from scipy.interpolate import splprep, splev
 
 pts = np.array([
-[0.98, -0.153],
-[1.98	,-0.357],
-[2.96, -0.524],
-[3.99, -0.601],
-[4.88, -0.141],
-[5.16, 0.537 ],
-[5.16, 1.12],
-[4.55, 2.03  ],
-[3.29, 2.13],
-[2.08, 1.82],
-[0.871, 1.84],
-[-0.309, 2.11],
-[-1.43, 1.84],
-[-1.93, 0.834],
-[-1.57, 0.32],
-[-0.594, -0.0479],
-[0.363,-0.0872]
+[0.0334, 0.00972],
+[1.59	,-0.159],
+[3.21, -0.5],
+[4.33, -0.876],
+[5.28, -1.6],
+[5.54, -2.91 ],
+[4.49, -3.88],
+[2.97, -3.69 ],
+[1.79, -3.26],
+[0.614, -2.75],
+[-0.565, -2.26],
+[-1.519, -1.84],
+[-1.82, -0.947],
+[-1.16, -0.15],
 ])
 
 pts = pts.T
@@ -77,7 +74,7 @@ class PurePursuit(Node):
         self.vis_msg.color.a                 =       1.0
         self.vis_msg.pose.orientation.w      =       1.0
         self.vis_msg.lifetime                =       Duration()
-        self.count=8000
+        self.count=10000
         self.position = [0,0]
         self.ldist= 0
         self.rdist= 0
@@ -114,15 +111,15 @@ class PurePursuit(Node):
         self.ldist = ranges[int(np.radians(225)/angle_increment)]
         self.rdist = ranges[int(np.radians(45)/angle_increment)]
         self.count= self.count-1
-        if self.count>7004 or self.count<=0:
+        if self.count>9004 or self.count<=0:
             print("Not recording", self.count)
             self.start_rec = [self.position[0], self.position[1]]
 
-        if self.count>0 and self.count<=7000:
+        if self.count>0 and self.count<=9000:
             print("recording", self.count)
             self.data.append([self.position[0], self.position[1], self.ldist, self.rdist])
 
-        if self.count < 6500 and (np.sqrt(((np.array(self.start_rec) - np.array([self.position[0], self.position[1]])) ** 2).sum())) < 0.03:
+        if self.count < 8500 and (np.sqrt(((np.array(self.start_rec) - np.array([self.position[0], self.position[1]])) ** 2).sum())) < 0.03:
             self.count=0
 
         if self.count==0:
@@ -176,7 +173,7 @@ class PurePursuit(Node):
         y = goalPt[1]
         curvature = 2*goalPt[1]/(self.ld**2)
         msg = AckermannDriveStamped()
-        msg.drive.speed = float(1.0)
+        msg.drive.speed = float(0.5)
         msg.drive.steering_angle = curvature
         self.drivePub.publish(msg)
         
