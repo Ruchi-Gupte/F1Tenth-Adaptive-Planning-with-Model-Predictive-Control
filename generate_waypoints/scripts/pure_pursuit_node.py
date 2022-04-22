@@ -169,8 +169,8 @@ class MPC(Node):
         self.vis_msg2.color.g = 0.0
         self.vis_msg2.color.r = 1.0
 
-        self.data= []
-        timer_period = 0.001
+        # self.data= []
+        # timer_period = 0.001
         # self.timer = self.create_timer(timer_period, self.timer_callback)
         self.visualize_pub.publish(self.vis_msg)
 
@@ -178,10 +178,10 @@ class MPC(Node):
         self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
         self.odomSub = self.create_subscription(Odometry,odomTopic,self.pose_callback,0)
 
-        self.x = 0
-        self.y = 0
-        self.yaw = 0
-        self.v = 0
+        # self.x = 0
+        # self.y = 0
+        # self.yaw = 0
+        # self.v = 0
 
         self.initialize = True
 
