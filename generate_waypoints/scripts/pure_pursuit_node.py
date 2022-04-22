@@ -146,8 +146,8 @@ class MPC(Node):
         self.cy          =       traj[:,1].tolist()
         self.sp          =       traj[:,2].tolist()
         self.cyaw        =       (np.deg2rad(90) + traj[:,3])
-        self.cyaw       =       self.cyaw%(2*math.pi)
-        # self.cyaw[self.cyaw>math.pi] = self.cyaw[self.cyaw>math.pi] - 2*math.pi 
+        # self.cyaw       =       self.cyaw%(2*math.pi)
+        self.cyaw[self.cyaw<0] = self.cyaw[self.cyaw<0] + 2*math.pi 
         self.cyaw       =       self.cyaw.tolist()
         # self.cyaw        =       traj[:,3].tolist()
         self.ck          =       traj[:,4].tolist()       
