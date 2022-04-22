@@ -32,7 +32,7 @@ T = 3  # horizon length
 # mpc parameters
 R = np.diag([0.01, 0.01])  # input cost matrix
 Rd = np.diag([0.01, 1.0])  # input difference cost matrix
-Q = np.diag([1.0, 1.0, 0.8, 0.5])  # state cost matrix
+Q = np.diag([1.0, 1.0, 0.5, 0.5])  # state cost matrix
 Qf = Q  # state final matrix
 GOAL_DIS = 1.5  # goal distance
 STOP_SPEED = 0.5 / 3.6  # stop speed
@@ -124,6 +124,10 @@ class MPC(Node):
         self.cyaw        =       (np.deg2rad(90) + traj[:,3])
         # self.cyaw       =       self.cyaw%(2*math.pi)
         self.cyaw[self.cyaw<0] = self.cyaw[self.cyaw<0] + 2*math.pi 
+        
+        # diff = np.diff(self.cyaw)
+        # my_bool = np.hstack((diff>math.pi,np.array(False)))
+        # self.cyaw[my_bool] = self.cyaw[my_bool] + 2*math.pi
         self.cyaw       =       self.cyaw.tolist()
         # self.cyaw        =       traj[:,3].tolist()
         self.ck          =       traj[:,4].tolist()       
@@ -325,6 +329,12 @@ class MPC(Node):
             if(i>0):
                 if xref[3,i] < 1.0 and xref[3,i-1] > 6.0:
                     xref[3,i] += 2*math.pi
+        for i in range(T-1,-1,-1):
+            if (xref[3,i] - xref[3,i+1]) < -math.pi:
+                xref[3,i] += 2*math.pi
+        if(state.yaw - xref[3,0]) < -math.pi:
+            state.yaw += 2*math.pi
+
         return xref, ind, dref
     def check_goal(state, goal, tind, nind):
         # check goal
@@ -356,7 +366,7 @@ class MPC(Node):
         # currPosey = pose_msg.twist.linear.y #Gets the x and y values of my current pose
             
         
-        dl = 0.1
+        dl = 0.05
         x = pose_msg.pose.pose.position.x
         y = pose_msg.pose.pose.position.y
         
@@ -423,10 +433,10 @@ class MPC(Node):
             msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
-            msg.drive.speed          =  float(self.sp[self.target_ind])
+            msg.drive.speed          =  float(self.sp[self.target_ind])*0.8
             # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
-            # msg.drive.speed          =  3.0
+            # msg.drive.speed          =  1.0
             self.drivePub.publish(msg)
                 
             # state = self.update_state(state, ai, di)
