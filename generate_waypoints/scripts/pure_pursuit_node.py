@@ -503,7 +503,7 @@ class MPC(Node):
             msg.drive.acceleration = float(ai)
             if(abs(self.old_input - di) > 0.3):
                 di = self.old_input
-            msg.drive.steering_angle = di
+            msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
             msg.drive.speed          =  float(self.sp[self.target_ind])
