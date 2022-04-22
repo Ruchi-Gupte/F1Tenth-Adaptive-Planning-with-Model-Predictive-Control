@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(pure_pursuit)
+project(generate_waypoints)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)

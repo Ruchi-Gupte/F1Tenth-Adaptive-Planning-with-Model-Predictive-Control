@@ -106,7 +106,7 @@ class MPC(Node):
             Type: numpy array -> Shape : [2,1000] where 2 corresponds to x and y and 1000 are the number of points
         """
 
-        traj = np.load("/sim_ws/src/generate_waypoints/scripts/trajectory.npy")
+        traj = np.load("/f1tenth_ws/src/generate_waypoints/scripts/trajectory.npy")
         self.waypoints = traj
         # pdb.set_trace()
         # self.waypoints      =       self.waypoints[:, 0:1000:20]
@@ -174,9 +174,10 @@ class MPC(Node):
         # self.timer = self.create_timer(timer_period, self.timer_callback)
         self.visualize_pub.publish(self.vis_msg)
 
-        odomTopic = "/ego_racecar/odom"
+        odomTopic = "/pf/viz/inferred_pose"
         self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
-        self.odomSub = self.create_subscription(Odometry,odomTopic,self.pose_callback,0)
+        self.odomSub = self.create_subscription(PoseStamped,odomTopic,self.pose_callback,0)
+        self.velSub = self.create_subscription(Odometry,"/odom",self.odom_callback,0)
 
         # self.x = 0
         # self.y = 0
@@ -184,6 +185,7 @@ class MPC(Node):
         # self.v = 0
 
         self.initialize = True
+        self.v = 0
 
     # def timer_callback(self):
     #     self.visualize_pub.publish(self.vis_msg)
@@ -448,6 +450,8 @@ class MPC(Node):
 
         return yaw
     
+    def odom_callback(self,odom_msg):
+        self.v = odom_msg.twist.twist.linear.x
 
     def pose_callback(self, pose_msg):
         # pass
@@ -457,21 +461,20 @@ class MPC(Node):
             
         
         dl = 0.05
-        x = pose_msg.pose.pose.position.x
-        y = pose_msg.pose.pose.position.y
+        x = pose_msg.pose.position.x
+        y = pose_msg.pose.position.y
         
-        qx = pose_msg.pose.pose.orientation.x
-        qy = pose_msg.pose.pose.orientation.y
-        qz = pose_msg.pose.pose.orientation.z
-        qw = pose_msg.pose.pose.orientation.w
+        qx = pose_msg.pose.orientation.x
+        qy = pose_msg.pose.orientation.y
+        qz = pose_msg.pose.orientation.z
+        qw = pose_msg.pose.orientation.w
 
         rot_car_world = Rot.from_quat([qx,qy,qz,qw])
 
         roll,pitch,yaw = rot_car_world.as_euler('xyz',degrees=False)
         if(yaw < 0):
             yaw = yaw + 2*math.pi
-        v = pose_msg.twist.twist.linear.x
-
+        v = self.v
         state = State(x,y,yaw,v)
 
         if(self.initialize):
