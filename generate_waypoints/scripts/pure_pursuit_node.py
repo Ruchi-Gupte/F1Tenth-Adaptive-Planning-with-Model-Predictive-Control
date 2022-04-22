@@ -56,14 +56,23 @@ N_IND_SEARCH = 10       # Search index number
 
 DT = 0.1  # [s] time tick
 
+# # Vehicle parameters
+# LENGTH = 0.48  # [m]
+# WIDTH = 0.268  # [m]
+# BACKTOWHEEL = 0.1  # [m]
+# WHEEL_LEN = 0.1  # [m]
+# WHEEL_WIDTH = 0.05  # [m]
+# TREAD = 0.5  # [m]
+# WB =0.32  # [m]
+
 # Vehicle parameters
-LENGTH = 0.6  # [m]
-WIDTH = 0.3  # [m]
-BACKTOWHEEL = 0.1  # [m]
-WHEEL_LEN = 0.1  # [m]
-WHEEL_WIDTH = 0.05  # [m]
+LENGTH = 0.48  # [m]
+WIDTH = 0.268  # [m]
+BACKTOWHEEL = 0.07  # [m]
+WHEEL_LEN = 0.07  # [m]
+WHEEL_WIDTH = 0.07  # [m]
 TREAD = 0.5  # [m]
-WB =0.32  # [m]
+WB = 0.32  # [m]
 
 MAX_STEER = np.deg2rad(40.0)  # maximum steering angle [rad]
 MAX_DSTEER = np.deg2rad(10.0)  # maximum steering speed [rad/s]
@@ -507,6 +516,7 @@ class MPC(Node):
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
             msg.drive.speed          =  float(self.sp[self.target_ind])
+            print(msg.drive.speed)
             # msg.drive.speed          =  5.0
             # msg.drive.speed          =  1.0
             self.drivePub.publish(msg)
