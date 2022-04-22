@@ -41,7 +41,7 @@ T = 3  # horizon length
 # mpc parameters
 R = np.diag([0.01, 0.01])  # input cost matrix
 Rd = np.diag([0.01, 1.0])  # input difference cost matrix
-Q = np.diag([1.0, 1.0, 0.5, 0.5])  # state cost matrix
+Q = np.diag([1.0, 1.0, 0.8, 0.5])  # state cost matrix
 Qf = Q  # state final matrix
 GOAL_DIS = 1.5  # goal distance
 STOP_SPEED = 0.5 / 3.6  # stop speed
@@ -407,6 +407,11 @@ class MPC(Node):
             if(i>0):
                 if xref[3,i] < 1.0 and xref[3,i-1] > 6.0:
                     xref[3,i] += 2*math.pi
+        for i in range(T-1,-1,-1):
+            if (xref[3,i] - xref[3,i+1]) < -math.pi:
+                xref[3,i] += 2*math.pi
+        if(state.yaw - xref[3,0]) < -math.pi:
+            state.yaw += 2*math.pi
 
         return xref, ind, dref
 
@@ -449,16 +454,9 @@ class MPC(Node):
         # TODO: find the current waypoint to track using methods mentioned in lecture
         # currPosex = pose_msg.twist.linear.x
         # currPosey = pose_msg.twist.linear.y #Gets the x and y values of my current pose
-        
-        if(self.initialize):
-            self.initialize = False
-            self.target_ind = 0 #update it later to initial state
-            # self.cyaw = self.smooth_yaw(self.cyaw)
-
-            self.odelta, self.oa = None, None
             
         
-        dl = 0.1
+        dl = 0.05
         x = pose_msg.pose.pose.position.x
         y = pose_msg.pose.pose.position.y
         
@@ -475,6 +473,14 @@ class MPC(Node):
         v = pose_msg.twist.twist.linear.x
 
         state = State(x,y,yaw,v)
+
+        if(self.initialize):
+            
+            self.initialize = False
+            self.target_ind = 0 #update it later to initial state
+            # self.cyaw = self.smooth_yaw(self.cyaw)
+            self.target_ind, _ = self.calc_nearest_index(state, self.cx, self.cy, self.cyaw, self.target_ind)
+            self.odelta, self.oa = None, None
 
         self.target_ind, _ = self.calc_nearest_index(state, self.cx, self.cy, self.cyaw, self.target_ind)
 
@@ -530,7 +536,7 @@ class MPC(Node):
             msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
-            msg.drive.speed          =  float(self.sp[self.target_ind])*0.8
+            msg.drive.speed          =  float(self.sp[self.target_ind])
             # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
             # msg.drive.speed          =  3.0
