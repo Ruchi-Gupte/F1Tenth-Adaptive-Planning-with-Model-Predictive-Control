@@ -60,7 +60,7 @@ class PurePursuit(Node):
             self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
             self.odomSub = self.create_subscription(Odometry,odomTopic,self.pose_callback,0)
 
-        self.points          =       np.load("/sim_ws/src/pure_pursuit/scripts/trajectory22April.npy")
+        self.points          =       np.load(traj_path)
 
 
         self.waypoints      =       self.points.T[:2]           #Shape: (2,N)
@@ -127,7 +127,7 @@ class PurePursuit(Node):
         self.ld             =       self.ld*(self.curvature - min_curvature)
         self.ld             =       self.ld + max_ld
 
-        self.curr_ld        =       2.5
+        self.curr_ld        =       max_ld
         self.prev_time      = time.time()
 
 
@@ -236,7 +236,7 @@ class PurePursuit(Node):
 
         self.drivePub.publish(msg)
 
-        print("Publishing Frequency: ", 1/(time.time() - self.prev_time))
+        # print("Publishing Frequency: ", 1/(time.time() - self.prev_time))
         self.prev_time = time.time()
         
 def main(args=None):
