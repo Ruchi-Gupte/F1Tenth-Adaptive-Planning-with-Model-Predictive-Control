@@ -12,7 +12,7 @@ from itertools import product
 
 
 send_path 	= '/home/ruchi/f1tenth_gym_ros/maps/'
-filename	= 'outMap'
+filename	= 'race2'
 sensitivity = 15
 threshold = 9.0
 k_size = 5
@@ -27,9 +27,9 @@ blur 		= cv2.medianBlur(mask_white, 3)
 smooth 		= cv2.addWeighted( mask_white, 5, mask_white, -0.5, 0)
 opened = cv2.morphologyEx(smooth, cv2.MORPH_OPEN, kernel)
 
-cv2.imwrite(send_path+filename+".pgm", opened)
 cv2.imwrite(filename+".pgm", opened)
-shutil.copyfile(filename+".yaml", send_path+filename+".yaml")
+cv2.imwrite(filename+".pgm", opened)
+#shutil.copyfile(filename+".yaml", send_path+filename+".yaml")
 
 # Find medial axis
 skeleton, distance = medial_axis(opened, return_distance = True)

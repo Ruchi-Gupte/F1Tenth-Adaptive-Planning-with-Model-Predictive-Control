@@ -12,7 +12,9 @@ from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
 from builtin_interfaces.msg import Duration
 from nav_msgs.msg import Odometry
+import time
 from scipy.spatial.transform import Rotation as R
+
 class PurePursuit(Node):
     """ 
     Implement Pure Pursuit on the car
@@ -97,6 +99,7 @@ class PurePursuit(Node):
         # TODO: find the current waypoint to track using methods mentioned in lecture
         # currPosex = pose_msg.twist.linear.x
         # currPosey = pose_msg.twist.linear.y #Gets the x and y values of my current pose
+        time.sleep(0.016)
         currPosex = pose_msg.pose.pose.position.x
         currPosey = pose_msg.pose.pose.position.y
         currPose = np.array([currPosex,currPosey,0]).reshape((3,-1))

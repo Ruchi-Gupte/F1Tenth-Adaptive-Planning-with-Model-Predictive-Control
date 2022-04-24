@@ -18,20 +18,32 @@ from scipy import interpolate
 from scipy.interpolate import splprep, splev
 
 pts = np.array([
-[0.0334, 0.00972],
-[1.59	,-0.159],
-[3.21, -0.5],
-[4.33, -0.876],
-[5.28, -1.6],
-[5.54, -2.91 ],
-[4.49, -3.88],
-[2.97, -3.69 ],
-[1.79, -3.26],
-[0.614, -2.75],
-[-0.565, -2.26],
-[-1.519, -1.84],
-[-1.82, -0.947],
-[-1.16, -0.15],
+[9.15,0.554],
+[9.28,1.89],
+[9.27,4.19],
+[9.19,7.65],
+[9.37,9.31],
+[8.98,11.1],
+[7.65,11.6],
+[6.37,11.2],
+[6.11,10.5],
+[6.16,9.42],
+[6.07,8.56],
+[6.06,7.08],
+[6.13,5.58],
+[6.02,4.44],
+[4.19,3.87],
+[2.98,3.92],
+[1.36,3.75],
+# [1.08,3.88],
+[0.43,3.15],
+[0.31,1.63],
+[0.88,0.432],
+[2.49,0.0681],
+[4.09,0.0833],
+[5.76,0.0651],
+[7.49,-0.0135],
+[9.15,0.554]
 ])
 
 pts = pts.T
@@ -74,7 +86,7 @@ class PurePursuit(Node):
         self.vis_msg.color.a                 =       1.0
         self.vis_msg.pose.orientation.w      =       1.0
         self.vis_msg.lifetime                =       Duration()
-        self.count=10000
+        self.count=20000
         self.position = [0,0]
         self.ldist= 0
         self.rdist= 0
@@ -111,15 +123,15 @@ class PurePursuit(Node):
         self.ldist = ranges[int(np.radians(225)/angle_increment)]
         self.rdist = ranges[int(np.radians(45)/angle_increment)]
         self.count= self.count-1
-        if self.count>9004 or self.count<=0:
+        if self.count>19004 or self.count<=0:
             print("Not recording", self.count)
             self.start_rec = [self.position[0], self.position[1]]
 
-        if self.count>0 and self.count<=9000:
+        if self.count>0 and self.count<=19000:
             print("recording", self.count)
             self.data.append([self.position[0], self.position[1], self.ldist, self.rdist])
 
-        if self.count < 8500 and (np.sqrt(((np.array(self.start_rec) - np.array([self.position[0], self.position[1]])) ** 2).sum())) < 0.03:
+        if self.count < 18000 and (np.sqrt(((np.array(self.start_rec) - np.array([self.position[0], self.position[1]])) ** 2).sum())) < 0.03:
             self.count=0
 
         if self.count==0:

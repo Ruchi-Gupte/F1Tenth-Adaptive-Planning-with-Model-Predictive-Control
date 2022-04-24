@@ -15,5 +15,5 @@ df['w_tr_left_m']= df["w_tr_left_m"].clip(0, 0.3, axis=0)
 df['w_tr_right_m']= df["w_tr_right_m"].clip(0, 0.3, axis=0)
 df.to_csv("Trajectory_clipped.csv", index=False)
 
-shutil.copyfile(filename+"unclipped.csv", send_path+filename+"unclipped.csv")
-shutil.copyfile(filename+"clipped.csv", send_path+filename+"clipped.csv")
+#shutil.copyfile(filename+"unclipped.csv", send_path+filename+"unclipped.csv")
+#shutil.copyfile(filename+"clipped.csv", send_path+filename+"clipped.csv")
