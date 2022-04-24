@@ -9,7 +9,7 @@ from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 # TODO CHECK: include needed ROS msg type headers and libraries
 
 from visualization_msgs.msg import Marker
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point,PoseStamped
 from builtin_interfaces.msg import Duration
 from nav_msgs.msg import Odometry
 import time
@@ -31,6 +31,15 @@ class PurePursuit(Node):
 
             Type: numpy array -> Shape : [2,1000] where 2 corresponds to x and y and 1000 are the number of points
         """
+        self.on_car = True
+        if(self.on_car):
+            odomTopic = "/pf/viz/inferred_pose"
+            self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
+            self.odomSub = self.create_subscription(PoseStamped,odomTopic,self.pose_callback,0)
+        else:
+            odomTopic = "/ego_racecar/odom"
+            self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
+            self.odomSub = self.create_subscription(Odometry,odomTopic,self.pose_callback,0)
 
         self.points          =       np.load("/sim_ws/src/pure_pursuit/scripts/trajectory22April.npy")
 
@@ -89,15 +98,11 @@ class PurePursuit(Node):
         self.ld_point_msg.scale.y       =       0.2
         self.ld_point_msg.scale.z       =       0.2
 
-
-        odomTopic = "/ego_racecar/odom"
-        self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
-        self.odomSub = self.create_subscription(Odometry,odomTopic,self.pose_callback,0)
         
         min_curvature       =       self.curvature.min()
         max_curvature       =       self.curvature.max()
         max_ld              =       2.5
-        min_ld              =       0.5
+        min_ld              =       1.0
 
         self.ld             =       (min_ld - max_ld)/(max_curvature - min_curvature) #lookahead distance constant to 0.5m
         self.ld             =       self.ld*(self.curvature - min_curvature)
@@ -119,14 +124,23 @@ class PurePursuit(Node):
 
         self.visualize_pub.publish(self.vis_msg)
 
-        time.sleep(0.016)
-        currPosex = pose_msg.pose.pose.position.x
-        currPosey = pose_msg.pose.pose.position.y
-        currPose = np.array([currPosex,currPosey,0]).reshape((3,-1))
-        qx = pose_msg.pose.pose.orientation.x
-        qy = pose_msg.pose.pose.orientation.y
-        qz = pose_msg.pose.pose.orientation.z
-        qw = pose_msg.pose.pose.orientation.w
+        if self.on_car:
+            currPosex = pose_msg.pose.position.x
+            currPosey = pose_msg.pose.position.y
+            currPose = np.array([currPosex,currPosey,0]).reshape((3,-1))
+            qx = pose_msg.pose.orientation.x
+            qy = pose_msg.pose.orientation.y
+            qz = pose_msg.pose.orientation.z
+            qw = pose_msg.pose.orientation.w
+        else:
+            time.sleep(0.018)
+            currPosex = pose_msg.pose.pose.position.x
+            currPosey = pose_msg.pose.pose.position.y
+            currPose = np.array([currPosex,currPosey,0]).reshape((3,-1))
+            qx = pose_msg.pose.pose.orientation.x
+            qy = pose_msg.pose.pose.orientation.y
+            qz = pose_msg.pose.pose.orientation.z
+            qw = pose_msg.pose.pose.orientation.w
         
         rot_car_world = R.from_quat([qx,qy,qz,qw])
         
@@ -191,7 +205,7 @@ class PurePursuit(Node):
         speedIdx = np.argmin(np.linalg.norm(self.waypoints - np.array([currPosex,currPosey]).reshape((-1,1)),axis = 0))
         traj_curvature = self.curvature[speedIdx]
 
-        print("Trajectory Curvature: ",traj_curvature, "  ld: ", self.curr_ld)
+        # print("Trajectory Curvature: ",traj_curvature, "  ld: ", self.curr_ld)
 
         self.curr_ld   = self.ld[speedIdx]
 
@@ -203,7 +217,7 @@ class PurePursuit(Node):
 
         self.drivePub.publish(msg)
 
-        # print("Publishing Frequency: ", 1/(time.time() - self.prev_time))
+        print("Publishing Frequency: ", 1/(time.time() - self.prev_time))
         self.prev_time = time.time()
         
 def main(args=None):
