@@ -14,6 +14,7 @@ from builtin_interfaces.msg import Duration
 from nav_msgs.msg import Odometry
 import time
 from scipy.spatial.transform import Rotation as R
+import copy
 
 class PurePursuit(Node):
     """ 
@@ -32,21 +33,16 @@ class PurePursuit(Node):
         """
 
         self.points          =       np.load("/sim_ws/src/pure_pursuit/scripts/trajectory22April.npy")
-        # self.cx              =       traj[:,0].tolist()
-        # self.cy              =       traj[:,1].tolist()
-        # self.sp              =       traj[:,2].tolist()
 
-        self.waypoints      =       self.points.T[:2]
-        self.speed          =       self.points.T[2]
-        # self.waypoints      =       self.waypoints[:, 0:1000:20]
-        # print("Type self.waypoints: ", type(self.waypoints))
-        # print("Shape of self.waypoints: " , self.waypoints.shape)
-        # print("Type of self.waypoints[0]: ", type(self.waypoints[0]))
-        # print("Length of self.waypoints[0]: ", len(self.waypoints[0]))
 
+        self.waypoints      =       self.points.T[:2]           #Shape: (2,N)
+        self.speed          =       self.points.T[2]            #Shape: (N,)
+        self.curvature      =       np.abs(self.points.T[4])    #Shape: (N,)
+        
         # TODO: create ROS subscribers and publishers
 
         vis_topic = "visualization_marker"
+
         self.visualize_pub              =       self.create_publisher(Marker, vis_topic, 10)
 
         self.vis_msg                         =       Marker()
@@ -78,21 +74,41 @@ class PurePursuit(Node):
 
             self.vis_msg.points.append(p)
 
-        timer_period = 0.5
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        # timer_period = 0.5
+        # self.timer = self.create_timer(timer_period, self.timer_callback)
 
         self.visualize_pub.publish(self.vis_msg)
+
+        ld_point_topic                  = "visualization_marker2"
+        self.ld_point_vis               =       self.create_publisher(Marker, ld_point_topic, 10)
+        self.ld_point_msg               =       copy.deepcopy(self.vis_msg)
+        self.ld_point_msg.points        =       []
+        self.ld_point_msg.color.g       =       0.0
+        self.ld_point_msg.color.r       =       1.0
+        self.ld_point_msg.scale.x       =       0.2
+        self.ld_point_msg.scale.y       =       0.2
+        self.ld_point_msg.scale.z       =       0.2
+
 
         odomTopic = "/ego_racecar/odom"
         self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
         self.odomSub = self.create_subscription(Odometry,odomTopic,self.pose_callback,0)
-        self.ld = 1.0 #lookahead distance constant to 0.5m
+        
+        min_curvature       =       self.curvature.min()
+        max_curvature       =       self.curvature.max()
+        max_ld              =       2.5
+        min_ld              =       0.5
 
-        self.prev_time = time.time()
+        self.ld             =       (min_ld - max_ld)/(max_curvature - min_curvature) #lookahead distance constant to 0.5m
+        self.ld             =       self.ld*(self.curvature - min_curvature)
+        self.ld             =       self.ld + max_ld
+
+        self.curr_ld        =       2.5
+        self.prev_time      = time.time()
 
 
-    def timer_callback(self):
-        self.visualize_pub.publish(self.vis_msg)
+    # def timer_callback(self):
+    #     self.visualize_pub.publish(self.vis_msg)
 
 
     def pose_callback(self, pose_msg):
@@ -100,6 +116,9 @@ class PurePursuit(Node):
         # TODO: find the current waypoint to track using methods mentioned in lecture
         # currPosex = pose_msg.twist.linear.x
         # currPosey = pose_msg.twist.linear.y #Gets the x and y values of my current pose
+
+        self.visualize_pub.publish(self.vis_msg)
+
         time.sleep(0.016)
         currPosex = pose_msg.pose.pose.position.x
         currPosey = pose_msg.pose.pose.position.y
@@ -126,8 +145,8 @@ class PurePursuit(Node):
         distArray = np.linalg.norm(gPts,axis = 0) 
 
 
-        bool_in_circle = distArray <= self.ld
-        bool_out_circle = distArray >= self.ld
+        bool_in_circle = distArray <= self.curr_ld
+        bool_out_circle = distArray >= self.curr_ld
 
         gPts_out = gPts[:,bool_out_circle]
         out_pt = gPts_out[:, np.argmin(distArray[bool_out_circle])]
@@ -151,24 +170,40 @@ class PurePursuit(Node):
 
         # out_pt = gPts[:,closest_out_of_circle_point]
         # in_pt = gPts[:,farthest_in_circle_point]
+        self.ld_point_msg.points        =       []
         goalPt = (out_pt + in_pt)/2
         x = goalPt[0]
         y = goalPt[1]
         
+        # import pdb;pdb.set_trace()
+        p_world = rot_car_world.apply(np.array([x,y,0.0])).reshape(-1,1) + currPose
+        p       =       Point()
+        p.x     =       p_world[0][0]
+        p.y     =       p_world[1][0]
+        p.z     =       0.0
+        self.ld_point_msg.points.append(p)
+        self.ld_point_vis.publish(self.ld_point_msg)
+
         # TODO: calculate curvature/steering angle
-        curvature = 2*goalPt[1]/(self.ld**2)
+        curvature = 2*goalPt[1]/(self.curr_ld**2)
         # TODO: publish drive message, don't forget to limit the steering angle.
 
         speedIdx = np.argmin(np.linalg.norm(self.waypoints - np.array([currPosex,currPosey]).reshape((-1,1)),axis = 0))
+        traj_curvature = self.curvature[speedIdx]
+
+        print("Trajectory Curvature: ",traj_curvature, "  ld: ", self.curr_ld)
+
+        self.curr_ld   = self.ld[speedIdx]
+
         msg = AckermannDriveStamped()
         msg.drive.speed = float(self.speed[speedIdx])
-        # msg.drive.speed =   2.0
+        # msg.drive.speed =   1.0
         msg.drive.steering_angle = curvature
         # if(msg.drive.steering_angle>np.radians(20))
 
         self.drivePub.publish(msg)
 
-        print("Publishing Frequency: ", 1/(time.time() - self.prev_time))
+        # print("Publishing Frequency: ", 1/(time.time() - self.prev_time))
         self.prev_time = time.time()
         
 def main(args=None):
