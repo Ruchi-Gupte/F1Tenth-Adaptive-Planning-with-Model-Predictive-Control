@@ -1,0 +1,6 @@
+[submodule "lab-4-follow-the-gap-team_03"]
+	path = lab-4-follow-the-gap-team_03
+	url = https://github.com/f1tenth/lab-4-follow-the-gap-team_03.git
+[submodule "lab6-slam-and-pure-pursuit-team_03"]
+	path = lab6-slam-and-pure-pursuit-team_03
+	url = https://github.com/f1tenth/lab6-slam-and-pure-pursuit-team_03.git
