@@ -88,6 +88,7 @@ class PurePursuit(Node):
         self.odomSub = self.create_subscription(Odometry,odomTopic,self.pose_callback,0)
         self.ld = 1.0 #lookahead distance constant to 0.5m
 
+        self.prev_time = time.time()
 
 
     def timer_callback(self):
@@ -161,12 +162,14 @@ class PurePursuit(Node):
         speedIdx = np.argmin(np.linalg.norm(self.waypoints - np.array([currPosex,currPosey]).reshape((-1,1)),axis = 0))
         msg = AckermannDriveStamped()
         msg.drive.speed = float(self.speed[speedIdx])
-        print(msg.drive.speed)
-        # msg.drive.speed =   4.4
+        # msg.drive.speed =   2.0
         msg.drive.steering_angle = curvature
         # if(msg.drive.steering_angle>np.radians(20))
 
         self.drivePub.publish(msg)
+
+        print("Publishing Frequency: ", 1/(time.time() - self.prev_time))
+        self.prev_time = time.time()
         
 def main(args=None):
     rclpy.init(args=args)
