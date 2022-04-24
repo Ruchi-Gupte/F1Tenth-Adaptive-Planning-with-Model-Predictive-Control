@@ -31,7 +31,26 @@ class PurePursuit(Node):
 
             Type: numpy array -> Shape : [2,1000] where 2 corresponds to x and y and 1000 are the number of points
         """
-        self.on_car = True
+        self.on_car =   True
+        
+        '''
+        1:      oldest non_optimized
+        2:      clipped at 0.5 both sides
+        3:      clipped at 0.7 both sides
+        4:      clipped-> left->0.3   ,   right->0.7
+        '''
+
+        trajectory  =   1
+        if(trajectory == 1):
+            traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory22April.npy"
+        elif(trajectory == 2):
+            traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.5.npy"
+        elif(trajectory == 3):
+            traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.7.npy"
+        elif(trajectory == 4):
+            traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.3_0.7.npy"
+
+
         if(self.on_car):
             odomTopic = "/pf/viz/inferred_pose"
             self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
