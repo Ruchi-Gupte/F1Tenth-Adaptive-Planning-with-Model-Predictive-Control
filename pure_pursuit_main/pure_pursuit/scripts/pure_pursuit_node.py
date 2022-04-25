@@ -38,9 +38,10 @@ class PurePursuit(Node):
         2:      clipped at 0.5 both sides
         3:      clipped at 0.7 both sides
         4:      clipped-> left->0.3   ,   right->0.7
+        5:      clipped-> left->0.7   ,   right->0.9
         '''
 
-        trajectory  =   4
+        trajectory  =   5
         if(self.on_car):
             if(trajectory == 1):
                 traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory22April.npy"
@@ -50,6 +51,8 @@ class PurePursuit(Node):
                 traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.7.npy"
             elif(trajectory == 4):
                 traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.3_0.7.npy"
+            elif(trajectory == 5):
+                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.7_0.9.npy"
         else:
             if(trajectory == 1):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory22April.npy"
@@ -59,6 +62,8 @@ class PurePursuit(Node):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.7.npy"
             elif(trajectory == 4):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.3_0.7.npy"
+            elif(trajectory == 5):
+                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.7_0.9.npy"
 
 
 
@@ -131,8 +136,8 @@ class PurePursuit(Node):
         
         min_curvature       =       self.curvature.min()
         max_curvature       =       self.curvature.max()
-        max_ld              =       2.5
-        min_ld              =       1.0
+        max_ld              =       3.0
+        min_ld              =       1.5
 
         self.ld             =       (min_ld - max_ld)/(max_curvature - min_curvature) #lookahead distance constant to 0.5m
         self.ld             =       self.ld*(self.curvature - min_curvature)
