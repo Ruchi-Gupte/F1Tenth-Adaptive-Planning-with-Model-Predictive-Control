@@ -41,47 +41,48 @@ class PurePursuit(Node):
         5:      clipped-> left->0.7   ,   right->0.9
         '''
 
-        trajectory          =       7
-        if(self.on_car):
-            if(trajectory == 1):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory22April.npy"
-            elif(trajectory == 2):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.5.npy"
-            elif(trajectory == 3):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.7.npy"
-            elif(trajectory == 4):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.3_0.7.npy"
-            elif(trajectory == 5):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.7_0.9.npy"
-            elif(trajectory == 6):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.3_0.95.npy"
-            elif(trajectory == 7):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.5_0.95.npy"
-            elif(trajectory == 8):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.0_0.95.npy"
-            elif(trajectory == 9):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.9_0.9.npy"
+        trajectory          =       5
+        if self.on_car:
+            home_path = "/f1tenth_ws"
         else:
-            if(trajectory == 1):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory22April.npy"
-            elif(trajectory == 2):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.5.npy"
-            elif(trajectory == 3):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.7.npy"
-            elif(trajectory == 4):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.3_0.7.npy"
-            elif(trajectory == 5):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.7_0.9.npy"
-            elif(trajectory == 6):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.3_0.95.npy"
-            elif(trajectory == 7):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.5_0.95.npy"
-            elif(trajectory == 8):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.0_0.95.npy"
-            elif(trajectory == 9):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.9_0.9.npy"
+            home_path = "/sim_ws"
 
-
+        if(trajectory == 1):
+            traj_path       =       home_path + "/src/pure_pursuit/scripts/trajectory22April.npy"
+            max_ld              =       2.3
+            min_ld              =       1.5
+        elif(trajectory == 2):
+            traj_path       =       home_path + "/src/pure_pursuit/scripts/trajectory_0.5.npy"
+            max_ld              =       2.3
+            min_ld              =       1.5
+        elif(trajectory == 3):
+            traj_path       =       home_path + "/src/pure_pursuit/scripts/trajectory_0.7.npy"
+            max_ld              =       2.3
+            min_ld              =       1.5
+        elif(trajectory == 4):
+            traj_path       =       home_path + "/src/pure_pursuit/scripts/trajectory_0.3_0.7.npy"
+            max_ld              =       2.3
+            min_ld              =       1.5
+        elif(trajectory == 5):
+            traj_path       =       home_path + "/src/pure_pursuit/scripts/trajectory_0.9_7ms.npy"
+            max_ld              =       2.7
+            min_ld              =       1.2
+        elif(trajectory == 6):
+            traj_path       =       home_path + "/src/pure_pursuit/scripts/trajectory_0.3_0.95.npy"
+            max_ld              =       2.3
+            min_ld              =       1.5
+        elif(trajectory == 7):
+            traj_path       =       home_path + "/src/pure_pursuit/scripts/trajectory_0.5_0.95.npy"
+            max_ld              =       2.3
+            min_ld              =       1.5
+        elif(trajectory == 8):
+            traj_path       =       home_path + "/src/pure_pursuit/scripts/trajectory_0.0_0.95.npy"
+            max_ld              =       2.3
+            min_ld              =       1.5 
+        elif(trajectory == 9):
+            traj_path       =       home_path + "/src/pure_pursuit/scripts/trajectory_0.9_0.9.npy"
+            max_ld              =       2.3
+            min_ld              =       1.5
 
         if(self.on_car):
             odomTopic = "/pf/viz/inferred_pose"
@@ -152,8 +153,6 @@ class PurePursuit(Node):
         
         min_curvature       =       self.curvature.min()
         max_curvature       =       self.curvature.max()
-        max_ld              =       2.3
-        min_ld              =       1.5
 
         self.ld             =       (min_ld - max_ld)/(max_curvature - min_curvature) #lookahead distance constant to 0.5m
         self.ld             =       self.ld*(self.curvature - min_curvature)
