@@ -31,7 +31,7 @@ class PurePursuit(Node):
 
             Type: numpy array -> Shape : [2,1000] where 2 corresponds to x and y and 1000 are the number of points
         """
-        self.on_car =   True
+        self.on_car =   False
         
         '''
         1:      oldest non_optimized
