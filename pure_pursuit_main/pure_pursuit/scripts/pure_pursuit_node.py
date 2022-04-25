@@ -54,9 +54,11 @@ class PurePursuit(Node):
             elif(trajectory == 5):
                 traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.7_0.9.npy"
             elif(trajectory == 6):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_iqp.npy"
+                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.3_0.95.npy"
             elif(trajectory == 7):
-                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_iqp_.npy"
+                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.5_0.95.npy"
+            elif(trajectory == 8):
+                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.0_0.95.npy"
         else:
             if(trajectory == 1):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory22April.npy"
@@ -69,9 +71,11 @@ class PurePursuit(Node):
             elif(trajectory == 5):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.7_0.9.npy"
             elif(trajectory == 6):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_iqp.npy"
+                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.3_0.95.npy"
             elif(trajectory == 7):
-                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_iqp_.npy"
+                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.5_0.95.npy"
+            elif(trajectory == 8):
+                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.0_0.95.npy"
 
 
 
