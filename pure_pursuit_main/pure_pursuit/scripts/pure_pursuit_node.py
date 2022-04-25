@@ -31,7 +31,7 @@ class PurePursuit(Node):
 
             Type: numpy array -> Shape : [2,1000] where 2 corresponds to x and y and 1000 are the number of points
         """
-        self.on_car =   False
+        self.on_car =   True
         
         '''
         1:      oldest non_optimized
@@ -41,7 +41,7 @@ class PurePursuit(Node):
         5:      clipped-> left->0.7   ,   right->0.9
         '''
 
-        trajectory          =       6
+        trajectory          =       7
         if(self.on_car):
             if(trajectory == 1):
                 traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory22April.npy"
@@ -59,6 +59,8 @@ class PurePursuit(Node):
                 traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.5_0.95.npy"
             elif(trajectory == 8):
                 traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.0_0.95.npy"
+            elif(trajectory == 9):
+                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.9_0.9.npy"
         else:
             if(trajectory == 1):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory22April.npy"
@@ -76,6 +78,8 @@ class PurePursuit(Node):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.5_0.95.npy"
             elif(trajectory == 8):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.0_0.95.npy"
+            elif(trajectory == 9):
+                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.9_0.9.npy"
 
 
 
