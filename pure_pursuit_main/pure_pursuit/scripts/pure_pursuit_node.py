@@ -41,7 +41,7 @@ class PurePursuit(Node):
         5:      clipped-> left->0.7   ,   right->0.9
         '''
 
-        trajectory  =   5
+        trajectory          =       6
         if(self.on_car):
             if(trajectory == 1):
                 traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory22April.npy"
@@ -53,6 +53,10 @@ class PurePursuit(Node):
                 traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.3_0.7.npy"
             elif(trajectory == 5):
                 traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_0.7_0.9.npy"
+            elif(trajectory == 6):
+                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_iqp.npy"
+            elif(trajectory == 7):
+                traj_path       =       "/f1tenth_ws/src/pure_pursuit/scripts/trajectory_iqp_.npy"
         else:
             if(trajectory == 1):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory22April.npy"
@@ -64,6 +68,10 @@ class PurePursuit(Node):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.3_0.7.npy"
             elif(trajectory == 5):
                 traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_0.7_0.9.npy"
+            elif(trajectory == 6):
+                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_iqp.npy"
+            elif(trajectory == 7):
+                traj_path       =       "/sim_ws/src/pure_pursuit/scripts/trajectory_iqp_.npy"
 
 
 
@@ -136,7 +144,7 @@ class PurePursuit(Node):
         
         min_curvature       =       self.curvature.min()
         max_curvature       =       self.curvature.max()
-        max_ld              =       3.0
+        max_ld              =       2.3
         min_ld              =       1.5
 
         self.ld             =       (min_ld - max_ld)/(max_curvature - min_curvature) #lookahead distance constant to 0.5m
@@ -144,7 +152,7 @@ class PurePursuit(Node):
         self.ld             =       self.ld + max_ld
 
         self.curr_ld        =       max_ld
-        self.prev_time      = time.time()
+        self.prev_time      =       time.time()
 
 
     # def timer_callback(self):
@@ -251,7 +259,7 @@ class PurePursuit(Node):
         # if(msg.drive.steering_angle>np.radians(20))
 
         self.drivePub.publish(msg)
-
+        print("Speed: ", msg.drive.speed)
         # print("Publishing Frequency: ", 1/(time.time() - self.prev_time))
         self.prev_time = time.time()
         
