@@ -93,7 +93,7 @@ class MPC(Node):
         local_traj_path:
                     Shape: (Num_trajectories, num_points, 5)
 
-                    5-> x,y,yaw,r,theta 
+                    5-> x,y,yaw,v,r,theta 
         """
         local_traj_path         =       np.load("/sim_ws/src/pure_pursuit/spline_trajs.npy")
         self.local_path         =       local_traj_path
