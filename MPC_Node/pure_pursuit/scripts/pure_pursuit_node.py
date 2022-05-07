@@ -430,20 +430,22 @@ class MPC(Node):
             self.vis_msg2.points.append(p)
         self.visualize_pub2.publish(self.vis_msg2)
 
-        self.local_path_1               =           self.local_path[0,:,:2]    #Shape: 101,2
-        dummy_zeros                     =           np.zeros(self.local_path_1.shape[0]).reshape(-1,1)
+        # import pdb;pdb.set_trace()
+        dummy_zeros                     =           np.zeros(self.local_path.shape[1]).reshape(-1,1)
         
         #Shape: 101,3
-        world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
-        
         self.local_vis_msg_1.points          =           []
-        for i in range(self.local_path_1.shape[0]):
-            p           =       Point()
-            p.x         =       world_local_points_1[i,0]
-            p.y         =       world_local_points_1[i,1]
-            p.z         =       0.0
+        for i in range(self.local_path.shape[0]):
+            self.local_path_1               =           self.local_path[i,:,:2]*0.5    #Shape: 101,2
+            world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
+            
+            for i in range(self.local_path_1.shape[0]):
+                p           =       Point()
+                p.x         =       world_local_points_1[i,0]
+                p.y         =       world_local_points_1[i,1]
+                p.z         =       0.0
 
-            self.local_vis_msg_1.points.append(p)
+                self.local_vis_msg_1.points.append(p)
 
         self.local_viz1.publish(self.local_vis_msg_1)
 
