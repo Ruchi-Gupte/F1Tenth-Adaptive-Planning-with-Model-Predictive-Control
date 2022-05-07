@@ -7,6 +7,7 @@ from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 # TODO CHECK: include needed ROS msg type headers and libraries
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point,PoseStamped
+from std_msgs.msg import ColorRGBA
 from builtin_interfaces.msg import Duration
 from nav_msgs.msg import Odometry
 from scipy.spatial.transform import Rotation as Rot
@@ -159,9 +160,9 @@ class MPC(Node):
         self.local_vis_msg_1             =       Marker()
         self.local_vis_msg_1             =       copy.deepcopy(self.vis_msg)
         self.local_vis_msg_1.points      =       []
-        self.local_vis_msg_1.color.g     =       0.5
-        self.local_vis_msg_1.color.r     =       0.5
-        self.local_vis_msg_1.color.b     =       0.5
+        self.local_vis_msg_1.color.g     =       0.0
+        self.local_vis_msg_1.color.r     =       0.0
+        self.local_vis_msg_1.color.b     =       0.0
 
         self.visualize_pub.publish(self.vis_msg)
         odomTopic = "/ego_racecar/odom"
@@ -169,6 +170,7 @@ class MPC(Node):
         self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
         self.odomSub = self.create_subscription(Odometry,odomTopic,self.pose_callback,0)
         self.lidarSub = self.create_subscription(LaserScan,lidarscan_topic,self.lidar_callback,10)
+        self.OppDrivePub = self.create_publisher(AckermannDriveStamped,"/opp_drive",0)
         
         self.angleMax = np.deg2rad(130)
         self.step = 0.32
@@ -444,21 +446,34 @@ class MPC(Node):
             self.vis_msg2.points.append(p)
         self.visualize_pub2.publish(self.vis_msg2)
 
-        # import pdb;pdb.set_trace()
         dummy_zeros                     =           np.zeros(self.local_path.shape[1]).reshape(-1,1)
         
         #Shape: 101,3
         self.local_vis_msg_1.points          =           []
-        for i in range(1):
+        self.local_vis_msg_1.colors          =           []
+        for i in range(self.local_path.shape[0]):
+        # for i in range(1):
             self.local_path_1               =           self.local_path[i,:,:2]    #Shape: 101,
             
             rdist, theta_r               =           self.local_path[i,:,-2], self.local_path[i,:,-1]    #Shape: 101,2
-            # import pdb;
-            # pdb.set_trace()
-
-            theta_index = int(self.angleMax/2) + (theta_r/self.step).astype(int)
+            
+            theta_index = int(self.angleMax/self.step) + (theta_r/self.step).astype(int)
             is_occ = np.max(self.ranges[theta_index] < rdist)
             print(is_occ)
+            if is_occ:
+                c = ColorRGBA()
+                c.r = 1.0
+                c.b = 0.0
+                c.g = 0.0
+                c.a = 1.0
+            else:
+                c = ColorRGBA()
+                c.r = 0.0
+                c.b = 1.0
+                c.g = 0.0
+                c.a = 1.0
+                # lastp = world_local_points_1[-1,:]
+
 
             world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
             
@@ -469,6 +484,8 @@ class MPC(Node):
                 p.z         =       0.0
 
                 self.local_vis_msg_1.points.append(p)
+                self.local_vis_msg_1.colors.append(c)
+
 
         self.local_viz1.publish(self.local_vis_msg_1)
 
@@ -493,12 +510,14 @@ class MPC(Node):
             msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
-            msg.drive.speed          =  float(self.sp[self.target_ind])*0.8
+            msg.drive.speed          =  float(self.sp[self.target_ind])
             # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
-            # msg.drive.speed          =  1.0
+            # msg.drive.speed          =  0.0
             self.drivePub.publish(msg)
                 
+            msg.drive.speed = 0.0
+            self.OppDrivePub.publish(msg)
             # state = self.update_state(state, ai, di)
             
 def main(args=None):
