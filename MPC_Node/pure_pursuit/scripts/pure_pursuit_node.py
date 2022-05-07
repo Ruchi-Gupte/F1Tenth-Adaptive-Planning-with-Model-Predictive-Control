@@ -85,7 +85,7 @@ class MPC(Node):
         self.waypoints: Load the waypoint saved 
             Type: numpy array -> Shape : [2,1000] where 2 corresponds to x and y and 1000 are the number of points
         """
-        traj = np.load("/sim_ws/src/pure_pursuit/trajectory.npy")
+        traj = np.load("/sim_ws/src/pure_pursuit/trajectory22April.npy")
         self.waypoints = traj
         # pdb.set_trace()
         # self.waypoints      =       self.waypoints[:, 0:1000:20]
