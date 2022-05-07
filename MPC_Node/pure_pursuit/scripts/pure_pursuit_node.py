@@ -165,16 +165,29 @@ class MPC(Node):
 
         self.visualize_pub.publish(self.vis_msg)
         odomTopic = "/ego_racecar/odom"
+        lidarscan_topic = '/scan'
         self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
         self.odomSub = self.create_subscription(Odometry,odomTopic,self.pose_callback,0)
-        # self.x = 0
-        # self.y = 0
-        # self.yaw = 0
-        # self.v = 0
+        self.lidarSub = self.create_subscription(LaserScan,lidarscan_topic,self.lidar_callback,10)
+        
+        self.angleMax = np.deg2rad(130)
+        self.step = 0.32
+        self.ranges = 0
+        self.islidaron= False
+
         self.initialize = True
     # def timer_callback(self):
     #     self.visualize_pub.publish(self.vis_msg)
     #     print(self.waypoints.shape)
+
+    def lidar_callback(self, data):
+        """ Process each LiDAR scan as per the Follow Gap algorithm & publish an AckermannDriveStamped Message
+        """
+        self.step = data.angle_increment
+        self.angleMax = data.angle_max
+        self.ranges = np.array(data.ranges)
+        self.islidaron = True
+
     def get_linear_model_matrix(self,v, phi, delta):
         A = np.zeros((NX, NX))
         A[0, 0] = 1.0
@@ -379,7 +392,8 @@ class MPC(Node):
         # TODO: find the current waypoint to track using methods mentioned in lecture
         # currPosex = pose_msg.twist.linear.x
         # currPosey = pose_msg.twist.linear.y #Gets the x and y values of my current pose
-            
+        if not self.islidaron:
+            return   
         
         dl = 0.05
         x = pose_msg.pose.pose.position.x
@@ -435,14 +449,23 @@ class MPC(Node):
         
         #Shape: 101,3
         self.local_vis_msg_1.points          =           []
-        for i in range(self.local_path.shape[0]):
-            self.local_path_1               =           self.local_path[i,:,:2]*0.5    #Shape: 101,2
+        for i in range(1):
+            self.local_path_1               =           self.local_path[i,:,:2]    #Shape: 101,
+            
+            rdist, theta_r               =           self.local_path[i,:,-2], self.local_path[i,:,-1]    #Shape: 101,2
+            # import pdb;
+            # pdb.set_trace()
+
+            theta_index = int(self.angleMax/2) + (theta_r/self.step).astype(int)
+            is_occ = np.max(self.ranges[theta_index] < rdist)
+            print(is_occ)
+
             world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
             
-            for i in range(self.local_path_1.shape[0]):
+            for j in range(self.local_path_1.shape[0]):
                 p           =       Point()
-                p.x         =       world_local_points_1[i,0]
-                p.y         =       world_local_points_1[i,1]
+                p.x         =       world_local_points_1[j,0]
+                p.y         =       world_local_points_1[j,1]
                 p.z         =       0.0
 
                 self.local_vis_msg_1.points.append(p)
