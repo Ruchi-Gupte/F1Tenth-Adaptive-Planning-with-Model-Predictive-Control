@@ -87,12 +87,19 @@ class MPC(Node):
         """
         traj = np.load("/sim_ws/src/pure_pursuit/trajectory22April.npy")
         self.waypoints = traj
-        # pdb.set_trace()
-        # self.waypoints      =       self.waypoints[:, 0:1000:20]
-        # print("Type self.waypoints: ", type(self.waypoints))
-        # print("Shape of self.waypoints: " , self.waypoints.shape)
-        # print("Type of self.waypoints[0]: ", type(self.waypoints[0]))
-        # print("Length of self.waypoints[0]: ", len(self.waypoints[0]))
+
+
+        """
+        local_traj_path:
+                    Shape: (Num_trajectories, num_points, 5)
+
+                    5-> x,y,yaw,r,theta 
+        """
+        local_traj_path         =       np.load("/sim_ws/src/pure_pursuit/spline_trajs.npy")
+        self.local_path         =       local_traj_path
+        local_viz_topic1        =       "local_vis_1"
+        self.local_viz1         =       self.create_publisher(Marker, local_viz_topic1, 10)
+
         # TODO: create ROS subscribers and publishers
         self.old_input      =       0
         vis_topic = "visualization_marker"
@@ -148,6 +155,14 @@ class MPC(Node):
         # self.data= []
         # timer_period = 0.001
         # self.timer = self.create_timer(timer_period, self.timer_callback)
+
+        self.local_vis_msg_1             =       Marker()
+        self.local_vis_msg_1             =       copy.deepcopy(self.vis_msg)
+        self.local_vis_msg_1.points      =       []
+        self.local_vis_msg_1.color.g     =       0.5
+        self.local_vis_msg_1.color.r     =       0.5
+        self.local_vis_msg_1.color.b     =       0.5
+
         self.visualize_pub.publish(self.vis_msg)
         odomTopic = "/ego_racecar/odom"
         self.drivePub = self.create_publisher(AckermannDriveStamped,"drive",0)
@@ -369,7 +384,8 @@ class MPC(Node):
         dl = 0.05
         x = pose_msg.pose.pose.position.x
         y = pose_msg.pose.pose.position.y
-        
+        currPose = np.array([x,y,0]).reshape((3,-1))
+
         qx = pose_msg.pose.pose.orientation.x
         qy = pose_msg.pose.pose.orientation.y
         qz = pose_msg.pose.pose.orientation.z
@@ -413,6 +429,25 @@ class MPC(Node):
             # pdb.set_trace()
             self.vis_msg2.points.append(p)
         self.visualize_pub2.publish(self.vis_msg2)
+
+        self.local_path_1               =           self.local_path[0,:,:2]    #Shape: 101,2
+        dummy_zeros                     =           np.zeros(self.local_path_1.shape[0]).reshape(-1,1)
+        
+        #Shape: 101,3
+        world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
+        
+        self.local_vis_msg_1.points          =           []
+        for i in range(self.local_path_1.shape[0]):
+            p           =       Point()
+            p.x         =       world_local_points_1[i,0]
+            p.y         =       world_local_points_1[i,1]
+            p.z         =       0.0
+
+            self.local_vis_msg_1.points.append(p)
+
+        self.local_viz1.publish(self.local_vis_msg_1)
+
+
         x0 = [state.x, state.y, state.v, state.yaw]  # current state
         self.oa, self.odelta, ox, oy, oyaw, ov = self.iterative_linear_mpc_control(
                 xref, x0, dref, self.oa, self.odelta)
