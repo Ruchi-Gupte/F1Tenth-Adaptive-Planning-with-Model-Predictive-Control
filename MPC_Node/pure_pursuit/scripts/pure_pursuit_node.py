@@ -415,24 +415,26 @@ class MPC(Node):
         if(self.initialize):
             
             self.initialize = False
-            self.target_ind = 0 #update it later to initial state
+            self.target_ind = np.argmin(np.linalg.norm(self.waypoints[:,:2] - np.array([x,y]).reshape(1,-1),axis = 1))
             # self.cyaw = self.smooth_yaw(self.cyaw)
             self.target_ind, _ = self.calc_nearest_index(state, self.cx, self.cy, self.cyaw, self.target_ind)
             self.odelta, self.oa = None, None
         self.target_ind, _ = self.calc_nearest_index(state, self.cx, self.cy, self.cyaw, self.target_ind)
-        # print(self.target_ind)
+
         if(self.target_ind > len(self.cx) - T):
             self.target_ind = 0
+        
         # if state.yaw - self.cyaw[self.target_ind] >= math.pi:
         #     # print("I am here")
         #     state.yaw -= math.pi * 2.0
         # elif state.yaw - self.cyaw[self.target_ind] <= -math.pi:
         #     # print("I am here2")
         #     state.yaw += math.pi * 2.0
+        
         self.visualize_pub.publish(self.vis_msg)
         xref, self.target_ind, dref = self.calc_ref_trajectory(
                 state, self.cx, self.cy, self.cyaw, self.ck, self.sp, dl, self.target_ind)
-        
+
         self.vis_msg2.points = []
         # self.visualize_pub2.publish(self.vis_msg2)
         for i in range(xref.shape[1]):
@@ -451,6 +453,22 @@ class MPC(Node):
         #Shape: 101,3
         self.local_vis_msg_1.points          =           []
         self.local_vis_msg_1.colors          =           []
+        
+        best_trajectory_number               =           0
+        best_closest_idx                     =           0
+
+        #Shape: [50,2]
+        num_idx_to_search   =  100
+        if self.target_ind + num_idx_to_search < self.waypoints.shape[0]:
+            points_to_search    =   self.waypoints[self.target_ind : self.target_ind + num_idx_to_search,:2]
+            # import pdb;pdb.set_trace()
+        else:
+            points_to_stack =  (self.target_ind + num_idx_to_search) - self.waypoints.shape[0]
+            points_to_search    =   self.waypoints[self.target_ind : self.target_ind + num_idx_to_search,:2]
+            points_to_search    =   np.vstack((points_to_search, self.waypoints[: points_to_stack,:2]))
+            
+
+        # for i in range(self.local_path.shape[0]-1,-1,-1):
         for i in range(self.local_path.shape[0]):
         # for i in range(1):
             self.local_path_1               =           self.local_path[i,:,:2]    #Shape: 101,
@@ -459,7 +477,10 @@ class MPC(Node):
             
             theta_index = int(self.angleMax/self.step) + (theta_r/self.step).astype(int)
             is_occ = np.max(self.ranges[theta_index] < rdist)
-            print(is_occ)
+
+            world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
+
+            # print(is_occ)
             if is_occ:
                 c = ColorRGBA()
                 c.r = 1.0
@@ -472,10 +493,13 @@ class MPC(Node):
                 c.b = 1.0
                 c.g = 0.0
                 c.a = 1.0
-                # lastp = world_local_points_1[-1,:]
 
+                lastp               = world_local_points_1[-1,:][:2].reshape(1,-1)    #Shape:(1,2)
+                closest_idx = np.argmin(np.linalg.norm(lastp - points_to_search , axis = 1))
+                if closest_idx >= best_closest_idx:
+                    best_closest_idx = closest_idx
+                    best_trajectory_number = i
 
-            world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
             
             for j in range(self.local_path_1.shape[0]):
                 p           =       Point()
@@ -486,16 +510,36 @@ class MPC(Node):
                 self.local_vis_msg_1.points.append(p)
                 self.local_vis_msg_1.colors.append(c)
 
+        print(best_trajectory_number)
+        # self.local_viz1.publish(self.local_vis_msg_1)
+
+        self.local_path_1               =           self.local_path[best_trajectory_number,:,:2]    #Shape: 101,
+
+        world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
+        c = ColorRGBA()
+        c.r = 0.937
+        c.b = 0.258
+        c.g = 0.960
+        c.a = 1.0
+            
+        for j in range(self.local_path_1.shape[0]):
+            p           =       Point()
+            p.x         =       world_local_points_1[j,0]
+            p.y         =       world_local_points_1[j,1]
+            p.z         =       0.0
+
+            self.local_vis_msg_1.points.append(p)
+            self.local_vis_msg_1.colors.append(c)
 
         self.local_viz1.publish(self.local_vis_msg_1)
-
 
         x0 = [state.x, state.y, state.v, state.yaw]  # current state
         self.oa, self.odelta, ox, oy, oyaw, ov = self.iterative_linear_mpc_control(
                 xref, x0, dref, self.oa, self.odelta)
         
-        print("s_yaw:", yaw, "|t_yaw:", self.cyaw[self.target_ind], "|steer:", self.odelta[0], "|s_x:",state.x,"|s_y:",state.y,"|t_x:",self.cx[self.target_ind],"|t_y:",self.cy[self.target_ind])
-        print("xref: ", xref[3,:])
+        # print("s_yaw:", yaw, "|t_yaw:", self.cyaw[self.target_ind], "|steer:", self.odelta[0], "|s_x:",state.x,"|s_y:",state.y,"|t_x:",self.cx[self.target_ind],"|t_y:",self.cy[self.target_ind])
+        # print("xref: ", xref[3,:])
+
         if self.odelta is not None:
             # print("Publishing")
             di, ai = self.odelta[0], self.oa[0]
@@ -519,7 +563,7 @@ class MPC(Node):
             msg.drive.speed = 0.0
             self.OppDrivePub.publish(msg)
             # state = self.update_state(state, ai, di)
-            
+
 def main(args=None):
     rclpy.init(args=args)
     print("MPC Initalized")
