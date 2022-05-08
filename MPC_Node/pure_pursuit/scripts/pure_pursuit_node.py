@@ -516,6 +516,7 @@ class MPC(Node):
         self.local_path_1               =           self.local_path[best_trajectory_number,:,:2]    #Shape: 101,
 
         world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
+        spline_yaw           = self.local_path[best_trajectory_number,:,2] + rot_car_world.as_euler('zxy')[0]
         c = ColorRGBA()
         c.r = 0.937
         c.b = 0.258
@@ -554,10 +555,10 @@ class MPC(Node):
             msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
-            msg.drive.speed          =  float(self.sp[self.target_ind])
+            # msg.drive.speed          =  float(self.sp[self.target_ind])*0.5
             # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
-            # msg.drive.speed          =  0.0
+            msg.drive.speed          =  0.0
             self.drivePub.publish(msg)
                 
             msg.drive.speed = 0.0
