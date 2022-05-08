@@ -207,8 +207,8 @@ class MPC(Node):
         disparity_bool_idx = np.where(disparity_bool)[0]
 
         for idx in disparity_bool_idx:
-            min_idx = max(0,idx - 40)
-            max_idx = min(idx + 40,proc_ranges.shape[0])
+            min_idx = max(0,idx - 50)
+            max_idx = min(idx + 50,proc_ranges.shape[0])
             
             proc_ranges[min_idx:max_idx] = np.min(proc_ranges[min_idx:max_idx])
 
@@ -533,8 +533,8 @@ class MPC(Node):
                 p.y         =       world_local_points_1[j,1]
                 p.z         =       0.0
 
-                self.local_vis_msg_1.points.append(p)
-                self.local_vis_msg_1.colors.append(c)
+                # self.local_vis_msg_1.points.append(p)
+                # self.local_vis_msg_1.colors.append(c)
 
         print(best_trajectory_number)
         # self.local_viz1.publish(self.local_vis_msg_1)
