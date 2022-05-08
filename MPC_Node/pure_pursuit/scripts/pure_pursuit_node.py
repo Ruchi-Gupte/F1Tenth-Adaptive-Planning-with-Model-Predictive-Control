@@ -533,8 +533,8 @@ class MPC(Node):
                 p.y         =       world_local_points_1[j,1]
                 p.z         =       0.0
 
-                # self.local_vis_msg_1.points.append(p)
-                # self.local_vis_msg_1.colors.append(c)
+                self.local_vis_msg_1.points.append(p)
+                self.local_vis_msg_1.colors.append(c)
 
         print(best_trajectory_number)
         # self.local_viz1.publish(self.local_vis_msg_1)
@@ -543,6 +543,7 @@ class MPC(Node):
 
         world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
         spline_yaw           = self.local_path[best_trajectory_number,:,2] + yaw
+        spline_yaw[spline_yaw<0] = spline_yaw[spline_yaw<0] + 2*math.pi
 
         c = ColorRGBA()
         c.r = 0.937
@@ -573,14 +574,35 @@ class MPC(Node):
         local_ref = xref
         local_ref[0,:] = local_x[idx_to_sample]
         local_ref[1,:] = local_y[idx_to_sample]
-        local_ref[3,:] = spline_yaw[idx_to_sample]
+
+        local_spline_yaw = spline_yaw[idx_to_sample]
+        
+        if(abs(state.yaw - local_spline_yaw[0]) > 3.14):
+            if(state.yaw < local_spline_yaw[0]):
+                state.yaw += 2*math.pi
+            else:
+                print("hey you out there in the cold, ")
+                local_spline_yaw[0] += 2*math.pi
+        for i in range(1,local_spline_yaw.shape[0]):
+            if local_spline_yaw[i] < 1.0 and local_spline_yaw[i-1] > 6.0:
+                    local_spline_yaw[i] += 2*math.pi
+
+        for i in range(T-1,-1,-1):
+            if (local_spline_yaw[i] - local_spline_yaw[i+1]) < -math.pi:
+                local_spline_yaw[i] += 2*math.pi
+        
+        if(state.yaw - local_spline_yaw[0]) < -math.pi:
+            state.yaw += 2*math.pi
+
+        local_ref[3,:] = local_spline_yaw
         xref = local_ref
         
         x0 = [state.x, state.y, state.v, state.yaw]  # current state
         self.oa, self.odelta, ox, oy, oyaw, ov = self.iterative_linear_mpc_control(
                 xref, x0, dref, self.oa, self.odelta)
         
-        # print("s_yaw:", yaw, "|t_yaw:", self.cyaw[self.target_ind], "|steer:", self.odelta[0], "|s_x:",state.x,"|s_y:",state.y,"|t_x:",self.cx[self.target_ind],"|t_y:",self.cy[self.target_ind])
+        # print("s_yaw:", state.yaw, "|t_yaw:", local_spline_yaw[0], "|steer:", self.odelta[0], "|s_x:",state.x,"|s_y:",state.y,"|t_x:",self.cx[self.target_ind],"|t_y:",self.cy[self.target_ind])
+        # print(local_ref)
         # print("xref: ", xref[3,:])
 
         if self.odelta is not None:
