@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from threading import local
 import rclpy
 from rclpy.node import Node
 import numpy as np
@@ -307,6 +308,7 @@ class MPC(Node):
         x0: initial state
         dref: reference steer angle
         """
+        # print("xref:\n" , xref , "\nxbar:\n", xbar)
         x = cvxpy.Variable((NX, T + 1))
         u = cvxpy.Variable((NU, T))
         cost = 0.0
@@ -543,7 +545,6 @@ class MPC(Node):
 
         world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
         spline_yaw           = self.local_path[best_trajectory_number,:,2] + yaw
-        spline_yaw[spline_yaw<0] = spline_yaw[spline_yaw<0] + 2*math.pi
 
         c = ColorRGBA()
         c.r = 0.937
@@ -566,7 +567,7 @@ class MPC(Node):
         xref: T,4 -> x,y,v,yaw
         """
         local_x = world_local_points_1[:,0]
-        local_y = world_local_points_1[:,0]
+        local_y = world_local_points_1[:,1]
         idx_to_sample = np.linspace(0, world_local_points_1.shape[0] - 1, T +1 , dtype = int)
         # idx_to_sample = np.linspace(0, 25, T +1 , dtype = int)
 
@@ -576,7 +577,7 @@ class MPC(Node):
         local_ref[1,:] = local_y[idx_to_sample]
 
         local_spline_yaw = spline_yaw[idx_to_sample]
-        
+        local_spline_yaw[local_spline_yaw<0] = local_spline_yaw[local_spline_yaw<0] + 2*math.pi
         if(abs(state.yaw - local_spline_yaw[0]) > 3.14):
             if(state.yaw < local_spline_yaw[0]):
                 state.yaw += 2*math.pi
@@ -593,7 +594,7 @@ class MPC(Node):
         
         if(state.yaw - local_spline_yaw[0]) < -math.pi:
             state.yaw += 2*math.pi
-
+        # print(local_spline_yaw)
         local_ref[3,:] = local_spline_yaw
         xref = local_ref
         
@@ -602,7 +603,7 @@ class MPC(Node):
                 xref, x0, dref, self.oa, self.odelta)
         
         # print("s_yaw:", state.yaw, "|t_yaw:", local_spline_yaw[0], "|steer:", self.odelta[0], "|s_x:",state.x,"|s_y:",state.y,"|t_x:",self.cx[self.target_ind],"|t_y:",self.cy[self.target_ind])
-        # print(local_ref)
+        # print(local_spline_yaw)
         # print("xref: ", xref[3,:])
 
         if self.odelta is not None:
