@@ -60,8 +60,8 @@ WHEEL_LEN = 0.07  # [m]
 WHEEL_WIDTH = 0.07  # [m]
 TREAD = 0.5  # [m]
 WB = 0.32  # [m]
-MAX_STEER = np.deg2rad(40.0)  # maximum steering angle [rad]
-MAX_DSTEER = np.deg2rad(10.0)  # maximum steering speed [rad/s]
+MAX_STEER = np.deg2rad(20.0)  # maximum steering angle [rad]
+MAX_DSTEER = np.deg2rad(5.0)  # maximum steering speed [rad/s]
 MAX_SPEED = 10.0  # maximum speed [m/s]
 MIN_SPEED = 0  # minimum speed [m/s]
 MAX_ACCEL = 2.5  # maximum accel [m/ss]
@@ -458,7 +458,7 @@ class MPC(Node):
         best_closest_idx                     =           0
 
         #Shape: [50,2]
-        num_idx_to_search   =  100
+        num_idx_to_search   =  35
         if self.target_ind + num_idx_to_search < self.waypoints.shape[0]:
             points_to_search    =   self.waypoints[self.target_ind : self.target_ind + num_idx_to_search,:2]
             # import pdb;pdb.set_trace()
@@ -477,6 +477,8 @@ class MPC(Node):
             
             theta_index = int(self.angleMax/self.step) + (theta_r/self.step).astype(int)
             is_occ = np.max(self.ranges[theta_index] < rdist)
+            # is_occ += np.max(self.ranges[theta_index+5] < rdist)
+            # is_occ += np.max(self.ranges[theta_index-5] < rdist)
 
             world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
 
@@ -512,11 +514,12 @@ class MPC(Node):
 
         print(best_trajectory_number)
         # self.local_viz1.publish(self.local_vis_msg_1)
-
+        # best_trajectory_number = 1
         self.local_path_1               =           self.local_path[best_trajectory_number,:,:2]    #Shape: 101,
 
         world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
-        spline_yaw           = self.local_path[best_trajectory_number,:,2] + rot_car_world.as_euler('zxy')[0]
+        spline_yaw           = self.local_path[best_trajectory_number,:,2] + yaw
+
         c = ColorRGBA()
         c.r = 0.937
         c.b = 0.258
@@ -534,6 +537,21 @@ class MPC(Node):
 
         self.local_viz1.publish(self.local_vis_msg_1)
 
+        """
+        xref: T,4 -> x,y,v,yaw
+        """
+        local_x = world_local_points_1[:,0]
+        local_y = world_local_points_1[:,0]
+        idx_to_sample = np.linspace(0, world_local_points_1.shape[0] - 1, T +1 , dtype = int)
+        # idx_to_sample = np.linspace(0, 8, T +1 , dtype = int)
+
+        
+        local_ref = xref
+        local_ref[0,:] = local_x[idx_to_sample]
+        local_ref[1,:] = local_y[idx_to_sample]
+        local_ref[3,:] = spline_yaw[idx_to_sample]
+        xref = local_ref
+        
         x0 = [state.x, state.y, state.v, state.yaw]  # current state
         self.oa, self.odelta, ox, oy, oyaw, ov = self.iterative_linear_mpc_control(
                 xref, x0, dref, self.oa, self.odelta)
@@ -555,10 +573,10 @@ class MPC(Node):
             msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
-            # msg.drive.speed          =  float(self.sp[self.target_ind])*0.5
+            msg.drive.speed          =  float(self.sp[self.target_ind])*0.8
             # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
-            msg.drive.speed          =  0.0
+            # msg.drive.speed          =  0.0
             self.drivePub.publish(msg)
                 
             msg.drive.speed = 0.0
