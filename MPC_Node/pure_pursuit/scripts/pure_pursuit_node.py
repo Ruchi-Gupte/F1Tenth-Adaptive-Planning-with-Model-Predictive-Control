@@ -623,7 +623,7 @@ class MPC(Node):
             msg.drive.speed          =  float(self.sp[self.target_ind])*0.5
             # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
-            # msg.drive.speed          =  0.0
+            msg.drive.speed          =  0.0
             self.drivePub.publish(msg)
                 
             msg.drive.speed = 0.0
