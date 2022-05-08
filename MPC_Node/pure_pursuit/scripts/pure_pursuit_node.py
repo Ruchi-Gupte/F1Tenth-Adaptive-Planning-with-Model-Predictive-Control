@@ -182,6 +182,10 @@ class MPC(Node):
     #     self.visualize_pub.publish(self.vis_msg)
     #     print(self.waypoints.shape)
 
+        self.minRange = 0.11999999731779099
+        self.maxRange = 20.0
+        self.disparity_thresh_min = 1
+
     def lidar_callback(self, data):
         """ Process each LiDAR scan as per the Follow Gap algorithm & publish an AckermannDriveStamped Message
         """
@@ -189,6 +193,26 @@ class MPC(Node):
         self.angleMax = data.angle_max
         self.ranges = np.array(data.ranges)
         self.islidaron = True
+        
+        proc_ranges = self.ranges
+        proc_ranges[np.isinf(proc_ranges)] = self.maxRange  
+        proc_ranges[np.isnan(proc_ranges)] = self.minRange
+
+        
+
+        disparity = proc_ranges[:-1] - proc_ranges[1:]
+
+        disparity_bool = np.abs(disparity) >= self.disparity_thresh_min
+
+        disparity_bool_idx = np.where(disparity_bool)[0]
+
+        for idx in disparity_bool_idx:
+            min_idx = max(0,idx - 40)
+            max_idx = min(idx + 40,proc_ranges.shape[0])
+            
+            proc_ranges[min_idx:max_idx] = np.min(proc_ranges[min_idx:max_idx])
+
+        self.ranges  = proc_ranges
 
     def get_linear_model_matrix(self,v, phi, delta):
         A = np.zeros((NX, NX))
@@ -543,7 +567,7 @@ class MPC(Node):
         local_x = world_local_points_1[:,0]
         local_y = world_local_points_1[:,0]
         idx_to_sample = np.linspace(0, world_local_points_1.shape[0] - 1, T +1 , dtype = int)
-        # idx_to_sample = np.linspace(0, 8, T +1 , dtype = int)
+        # idx_to_sample = np.linspace(0, 25, T +1 , dtype = int)
 
         
         local_ref = xref
@@ -573,7 +597,7 @@ class MPC(Node):
             msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
-            msg.drive.speed          =  float(self.sp[self.target_ind])*0.8
+            msg.drive.speed          =  float(self.sp[self.target_ind])*0.5
             # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
             # msg.drive.speed          =  0.0
