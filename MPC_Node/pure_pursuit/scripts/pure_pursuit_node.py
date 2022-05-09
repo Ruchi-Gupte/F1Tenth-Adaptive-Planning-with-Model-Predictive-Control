@@ -514,10 +514,9 @@ class MPC(Node):
         #     if is_occ:
         #         obstacle_detect= True
         # print(obstacle_detect)
-        if np.mean(self.ranges[int(self.angleMax/self.step)-10: int(self.angleMax/self.step)+10]) < 2.0:
+        if np.min(self.ranges[int(self.angleMax/self.step)-50: int(self.angleMax/self.step)+50]) < 2.0:
             obstacle_detect= True
             print(obstacle_detect)
-        print(np.mean(self.ranges[int(self.angleMax/self.step)-10: int(self.angleMax/self.step)+10]))
         if obstacle_detect:
             # for i in range(self.local_path.shape[0]-1,-1,-1):
             for i in range(self.local_path.shape[0]):
@@ -652,13 +651,13 @@ class MPC(Node):
             msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
-            # msg.drive.speed          =  float(self.sp[self.target_ind])*0.5
+            msg.drive.speed          =  float(self.sp[self.target_ind])*0.5
             # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
-            msg.drive.speed          =  1.0
+            # msg.drive.speed          =  1.0
             self.drivePub.publish(msg)
                 
-            msg.drive.speed = 0.0
+            msg.drive.speed = 0.3
             self.OppDrivePub.publish(msg)
             # state = self.update_state(state, ai, di)
 
