@@ -207,8 +207,8 @@ class MPC(Node):
         disparity_bool_idx                  =       np.where(disparity_bool)[0]
 
         for idx in disparity_bool_idx:
-            min_idx                         =       max(0,idx - 50)
-            max_idx                         =       min(idx + 50,proc_ranges.shape[0])
+            min_idx                         =       max(0,idx - 30)
+            max_idx                         =       min(idx + 30,proc_ranges.shape[0])
             proc_ranges[min_idx:max_idx]    =       np.min(proc_ranges[min_idx:max_idx])
 
         self.ranges  = proc_ranges
@@ -300,7 +300,7 @@ class MPC(Node):
         #         obstacle_detect= True
         # print(obstacle_detect)
         
-        if np.min(self.ranges[int(self.angleMax/self.step)-50: int(self.angleMax/self.step)+50]) < 2.0:
+        if np.min(self.ranges[int(self.angleMax/self.step)-50: int(self.angleMax/self.step)+50]) < 2.5:
             obstacle_detect= True
             print(obstacle_detect)
 
@@ -417,13 +417,13 @@ class MPC(Node):
             msg.drive.steering_angle    = float(di)
             self.old_input              =   di
             # msg.drive.speed           =  float(ov[0])
-            # msg.drive.speed           =  float(self.sp[self.target_ind])*0.5
+            msg.drive.speed           =  float(self.sp[self.target_ind])*0.7
             # print(msg.drive.speed)
             # msg.drive.speed           =  5.0
-            msg.drive.speed             =  2.0
+            # msg.drive.speed             =  0.0
             self.drivePub.publish(msg)
         
-            msg.drive.speed             = 0.3
+            msg.drive.speed             = 0.0
             self.OppDrivePub.publish(msg)
 
     def get_linear_model_matrix(self,v, phi, delta):
