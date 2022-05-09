@@ -651,10 +651,10 @@ class MPC(Node):
             msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
-            msg.drive.speed          =  float(self.sp[self.target_ind])*0.5
+            # msg.drive.speed          =  float(self.sp[self.target_ind])*0.5
             # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
-            # msg.drive.speed          =  1.0
+            msg.drive.speed          =  2.0
             self.drivePub.publish(msg)
                 
             msg.drive.speed = 0.3

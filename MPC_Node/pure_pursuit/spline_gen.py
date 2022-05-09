@@ -104,12 +104,12 @@ def cvtXYtoPolar(pt_car):
 # disc_del                                =   np.linspace(-MAX_STEER,MAX_STEER,15)
 # disc_del                                =   np.append(disc_del,0)
 # disc_vel                                =   np.arange(1,3,1)
-disc_vel                                =     np.array([1, 1.5,  2])
+disc_vel                                =     np.array([1.5])
 
 a                                       =   0
 spline_num                              =   0
 
-splines                                 =   np.zeros((33,T+1,6)) #x,y,yaw,r,theta
+splines                                 =   np.zeros((27,T+1,6)) #x,y,yaw,r,theta
 for v in disc_vel:          
 
     if(v==1):
@@ -123,7 +123,7 @@ for v in disc_vel:
         DT                              =   0.02
 
     elif(v==1.5):
-        disc_del                        =   np.linspace(np.deg2rad(-5.0),np.deg2rad(5.0),10)
+        disc_del                        =   np.linspace(np.deg2rad(-30.0),np.deg2rad(30.0),25)
         disc_del                        =   np.append(disc_del,0)
         DT                              =   0.02
 
