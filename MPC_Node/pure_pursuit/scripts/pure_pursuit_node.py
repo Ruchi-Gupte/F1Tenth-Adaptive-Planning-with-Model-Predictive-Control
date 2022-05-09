@@ -76,6 +76,17 @@ class State:
         self.yaw = yaw
         self.v = v
         self.predelta = None
+
+def cvtXYtoPolar(pt_car):
+    '''
+    This gets r,theta wrt x,y. Needs pt wrt car
+    pt_car : x,y array of shape(2,1)
+    Returns: vector of shape (2,1) polar with respect to car
+    '''
+    x                       =       pt_car[0]
+    y                       =       pt_car[1]
+    return(np.array([np.linalg.norm(pt_car),np.arctan2(y,x)]).reshape((2,1)))
+
 class MPC(Node):
     """ 
     Implement Pure Pursuit on the car
@@ -492,43 +503,80 @@ class MPC(Node):
             points_to_stack =  (self.target_ind + num_idx_to_search) - self.waypoints.shape[0]
             points_to_search    =   self.waypoints[self.target_ind : self.target_ind + num_idx_to_search,:2]
             points_to_search    =   np.vstack((points_to_search, self.waypoints[: points_to_stack,:2]))
-            
+        
+        obstacle_detect= False
+        # for points in points_to_search:
+        #     ref_r, ref_th= cvtXYtoPolar(points)
+        #     theta_index = int(self.angleMax/self.step) + int(ref_th/self.step)
+        #     is_occ = np.max(self.ranges[theta_index] > ref_r)
+        #     is_occ += np.max(self.ranges[theta_index+5] < rdist)
+        #     is_occ += np.max(self.ranges[theta_index-5] < rdist)
+        #     if is_occ:
+        #         obstacle_detect= True
+        # print(obstacle_detect)
+        if np.mean(self.ranges[int(self.angleMax/self.step)-10: int(self.angleMax/self.step)+10]) < 2.0:
+            obstacle_detect= True
+            print(obstacle_detect)
+        print(np.mean(self.ranges[int(self.angleMax/self.step)-10: int(self.angleMax/self.step)+10]))
+        if obstacle_detect:
+            # for i in range(self.local_path.shape[0]-1,-1,-1):
+            for i in range(self.local_path.shape[0]):
+            # for i in range(1):
+                self.local_path_1               =           self.local_path[i,:,:2]    #Shape: 101,
+                
+                rdist, theta_r               =           self.local_path[i,:,-2], self.local_path[i,:,-1]    #Shape: 101,2
+                
+                theta_index = int(self.angleMax/self.step) + (theta_r/self.step).astype(int)
+                is_occ = np.max(self.ranges[theta_index] < rdist)
+                # is_occ += np.max(self.ranges[theta_index+5] < rdist)
+                # is_occ += np.max(self.ranges[theta_index-5] < rdist)
 
-        # for i in range(self.local_path.shape[0]-1,-1,-1):
-        for i in range(self.local_path.shape[0]):
-        # for i in range(1):
-            self.local_path_1               =           self.local_path[i,:,:2]    #Shape: 101,
-            
-            rdist, theta_r               =           self.local_path[i,:,-2], self.local_path[i,:,-1]    #Shape: 101,2
-            
-            theta_index = int(self.angleMax/self.step) + (theta_r/self.step).astype(int)
-            is_occ = np.max(self.ranges[theta_index] < rdist)
-            # is_occ += np.max(self.ranges[theta_index+5] < rdist)
-            # is_occ += np.max(self.ranges[theta_index-5] < rdist)
+                world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
+
+                # print(is_occ)
+                if is_occ:
+                    c = ColorRGBA()
+                    c.r = 1.0
+                    c.b = 0.0
+                    c.g = 0.0
+                    c.a = 1.0
+                else:
+                    c = ColorRGBA()
+                    c.r = 0.0
+                    c.b = 1.0
+                    c.g = 0.0
+                    c.a = 1.0
+
+                    lastp               = world_local_points_1[-1,:][:2].reshape(1,-1)    #Shape:(1,2)
+                    closest_idx = np.argmin(np.linalg.norm(lastp - points_to_search , axis = 1))
+                    if closest_idx >= best_closest_idx:
+                        best_closest_idx = closest_idx
+                        best_trajectory_number = i
+
+                
+                for j in range(self.local_path_1.shape[0]):
+                    p           =       Point()
+                    p.x         =       world_local_points_1[j,0]
+                    p.y         =       world_local_points_1[j,1]
+                    p.z         =       0.0
+
+                    self.local_vis_msg_1.points.append(p)
+                    self.local_vis_msg_1.colors.append(c)
+
+            print(best_trajectory_number)
+            # self.local_viz1.publish(self.local_vis_msg_1)
+            # best_trajectory_number = 1
+            self.local_path_1               =           self.local_path[best_trajectory_number,:,:2]    #Shape: 101,
 
             world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
+            spline_yaw           = self.local_path[best_trajectory_number,:,2] + yaw
 
-            # print(is_occ)
-            if is_occ:
-                c = ColorRGBA()
-                c.r = 1.0
-                c.b = 0.0
-                c.g = 0.0
-                c.a = 1.0
-            else:
-                c = ColorRGBA()
-                c.r = 0.0
-                c.b = 1.0
-                c.g = 0.0
-                c.a = 1.0
-
-                lastp               = world_local_points_1[-1,:][:2].reshape(1,-1)    #Shape:(1,2)
-                closest_idx = np.argmin(np.linalg.norm(lastp - points_to_search , axis = 1))
-                if closest_idx >= best_closest_idx:
-                    best_closest_idx = closest_idx
-                    best_trajectory_number = i
-
-            
+            c = ColorRGBA()
+            c.r = 0.937
+            c.b = 0.258
+            c.g = 0.960
+            c.a = 1.0
+                
             for j in range(self.local_path_1.shape[0]):
                 p           =       Point()
                 p.x         =       world_local_points_1[j,0]
@@ -538,66 +586,50 @@ class MPC(Node):
                 self.local_vis_msg_1.points.append(p)
                 self.local_vis_msg_1.colors.append(c)
 
-        print(best_trajectory_number)
-        # self.local_viz1.publish(self.local_vis_msg_1)
-        # best_trajectory_number = 1
-        self.local_path_1               =           self.local_path[best_trajectory_number,:,:2]    #Shape: 101,
+            self.local_viz1.publish(self.local_vis_msg_1)
 
-        world_local_points_1 = rot_car_world.apply( np.hstack((self.local_path_1, dummy_zeros))) + currPose.T
-        spline_yaw           = self.local_path[best_trajectory_number,:,2] + yaw
+            """
+            xref: T,4 -> x,y,v,yaw
+            """
+            local_x = world_local_points_1[:,0]
+            local_y = world_local_points_1[:,1]
+            idx_to_sample = np.linspace(0, world_local_points_1.shape[0] - 1, T +1 , dtype = int)
+            # idx_to_sample = np.linspace(0, 25, T +1 , dtype = int)
 
-        c = ColorRGBA()
-        c.r = 0.937
-        c.b = 0.258
-        c.g = 0.960
-        c.a = 1.0
             
-        for j in range(self.local_path_1.shape[0]):
-            p           =       Point()
-            p.x         =       world_local_points_1[j,0]
-            p.y         =       world_local_points_1[j,1]
-            p.z         =       0.0
+            local_ref = xref
+            local_ref[0,:] = local_x[idx_to_sample]
+            local_ref[1,:] = local_y[idx_to_sample]
 
-            self.local_vis_msg_1.points.append(p)
-            self.local_vis_msg_1.colors.append(c)
+            local_spline_yaw = spline_yaw[idx_to_sample]
+            local_spline_yaw[local_spline_yaw<0] = local_spline_yaw[local_spline_yaw<0] + 2*math.pi
+            if(abs(state.yaw - local_spline_yaw[0]) > 3.14):
+                if(state.yaw < local_spline_yaw[0]):
+                    state.yaw += 2*math.pi
+                else:
+                    print("hey you out there in the cold, ")
+                    local_spline_yaw[0] += 2*math.pi
+            for i in range(1,local_spline_yaw.shape[0]):
+                if local_spline_yaw[i] < 1.0 and local_spline_yaw[i-1] > 6.0:
+                        local_spline_yaw[i] += 2*math.pi
 
-        self.local_viz1.publish(self.local_vis_msg_1)
-
-        """
-        xref: T,4 -> x,y,v,yaw
-        """
-        local_x = world_local_points_1[:,0]
-        local_y = world_local_points_1[:,1]
-        idx_to_sample = np.linspace(0, world_local_points_1.shape[0] - 1, T +1 , dtype = int)
-        # idx_to_sample = np.linspace(0, 25, T +1 , dtype = int)
-
-        
-        local_ref = xref
-        local_ref[0,:] = local_x[idx_to_sample]
-        local_ref[1,:] = local_y[idx_to_sample]
-
-        local_spline_yaw = spline_yaw[idx_to_sample]
-        local_spline_yaw[local_spline_yaw<0] = local_spline_yaw[local_spline_yaw<0] + 2*math.pi
-        if(abs(state.yaw - local_spline_yaw[0]) > 3.14):
-            if(state.yaw < local_spline_yaw[0]):
-                state.yaw += 2*math.pi
-            else:
-                print("hey you out there in the cold, ")
-                local_spline_yaw[0] += 2*math.pi
-        for i in range(1,local_spline_yaw.shape[0]):
-            if local_spline_yaw[i] < 1.0 and local_spline_yaw[i-1] > 6.0:
+            for i in range(T-1,-1,-1):
+                if (local_spline_yaw[i] - local_spline_yaw[i+1]) < -math.pi:
                     local_spline_yaw[i] += 2*math.pi
+            
+            if(state.yaw - local_spline_yaw[0]) < -math.pi:
+                state.yaw += 2*math.pi
+            # print(local_spline_yaw)
+            local_ref[3,:] = local_spline_yaw
+            xref = local_ref
+        else:
+            p = Point()
+            p.x         =       0.0
+            p.y         =       0.0
+            self.local_vis_msg_1.points.append(p)            
+            self.local_viz1.publish(self.local_vis_msg_1)
 
-        for i in range(T-1,-1,-1):
-            if (local_spline_yaw[i] - local_spline_yaw[i+1]) < -math.pi:
-                local_spline_yaw[i] += 2*math.pi
-        
-        if(state.yaw - local_spline_yaw[0]) < -math.pi:
-            state.yaw += 2*math.pi
-        # print(local_spline_yaw)
-        local_ref[3,:] = local_spline_yaw
-        xref = local_ref
-        
+
         x0 = [state.x, state.y, state.v, state.yaw]  # current state
         self.oa, self.odelta, ox, oy, oyaw, ov = self.iterative_linear_mpc_control(
                 xref, x0, dref, self.oa, self.odelta)
@@ -620,10 +652,10 @@ class MPC(Node):
             msg.drive.steering_angle = float(di)
             self.old_input  =   di
             # msg.drive.speed          =  float(ov[0])
-            msg.drive.speed          =  float(self.sp[self.target_ind])*0.5
+            # msg.drive.speed          =  float(self.sp[self.target_ind])*0.5
             # print(msg.drive.speed)
             # msg.drive.speed          =  5.0
-            msg.drive.speed          =  0.0
+            msg.drive.speed          =  1.0
             self.drivePub.publish(msg)
                 
             msg.drive.speed = 0.0
