@@ -7,7 +7,5 @@ Link to Results and Testing: [Youtube Link](https://youtube.com/playlist?list=PL
 
 
 ## Overview
--	Designed a model racecar with ROS2 using MPC with a kinematic bicycle model and a global optimal trajectory.
--	Incorporated local trajectory planning with cubic splines for dynamic obstacle avoidance. Lidar SLAM for mapping.
--	Added RRT*, Pure Pursuit, Automatic Breaking and Scan Matching functionality. Localization using Particle Filter.
+Designed a model racecar with ROS2 using MPC with a kinematic bicycle model and a global optimal trajectory. Local trajectory planning with cubic splines for dynamic obstacle avoidance. Lidar SLAM for mapping. Localization using Particle Filter.
 
